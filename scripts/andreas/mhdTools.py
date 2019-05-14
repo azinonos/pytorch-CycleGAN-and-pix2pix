@@ -57,4 +57,5 @@ def createABDomains(MRI_type, delete=False):
 					shutil.rmtree(full_dir)
 
 if __name__ == "__main__":
-	createABDomains('T1c', delete=True)
+	# createABDomains('T1c', delete=True)
+	convertMhdToNii()
