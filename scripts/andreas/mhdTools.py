@@ -2,7 +2,8 @@ import SimpleITK as sitk
 import os, shutil
 
 # Change root path to the directory where your data is stored
-root_path = '/Users/azinonos/Desktop/BRATS_Sample'
+# root_path = '/Users/azinonos/Desktop/BRATS_Sample'
+root_path = '/Users/azinonos/Downloads/BRATS2015_Training/HGG/brats_2013_pat0002_1'
 
 def convertMhdToNii():
 	count = 0

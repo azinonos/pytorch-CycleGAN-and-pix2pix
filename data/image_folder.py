@@ -12,14 +12,21 @@ import os.path
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
-    '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
+    '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP'
 ]
 
+BRAIN_IMG_EXTENSIONS = [
+    '.nii', '.mha'
+]
 
+# ORIGINAL
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
+def is_image_file_brain(filename):
+    return any(filename.endswith(extension) for extension in BRAIN_IMG_EXTENSIONS)
 
+# ORIGINAL
 def make_dataset(dir, max_dataset_size=float("inf")):
     images = []
     assert os.path.isdir(dir), '%s is not a valid directory' % dir
@@ -31,6 +38,16 @@ def make_dataset(dir, max_dataset_size=float("inf")):
                 images.append(path)
     return images[:min(max_dataset_size, len(images))]
 
+def make_dataset_brain(dir, max_dataset_size=float("inf")):
+    images = []
+    assert os.path.isdir(dir), '%s is not a valid directory' % dir
+
+    for root, _, fnames in sorted(os.walk(dir)):
+        for fname in fnames:
+            if is_image_file_brain(fname):
+                path = os.path.join(root, fname)
+                images.append(path)
+    return images[:min(max_dataset_size, len(images))]
 
 def default_loader(path):
     return Image.open(path).convert('RGB')
