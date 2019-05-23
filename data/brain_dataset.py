@@ -11,9 +11,11 @@ You need to implement the following functions:
     -- <__getitem__>: Return a data point and its metadata information.
     -- <__len__>: Return the number of images.
 """
+import os.path
 from data.base_dataset import BaseDataset, get_transform
-from data.image_folder import make_dataset_brain
+from data.image_folder import make_dataset
 from PIL import Image
+import random
 
 
 class BrainDataset(BaseDataset):
@@ -29,9 +31,9 @@ class BrainDataset(BaseDataset):
     #     Returns:
     #         the modified parser.
     #     """
-    #     parser.add_argument('--new_dataset_option', type=float, default=1.0, help='new dataset option')
-    #     parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
-    #     return parser
+        parser.add_argument('--brain_dataset', type=float, default=1.0, help='to be used with 2D slices of brain MRI images')
+        parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
+        return parser
 
     def __init__(self, opt):
         """Initialize this dataset class.
@@ -90,7 +92,7 @@ class BrainDataset(BaseDataset):
 
     def __len__(self):
         """Return the total number of images.
-        
+
         As we have two datasets with potentially different number of images,
         we take a maximum of
         """
