@@ -16,6 +16,7 @@ from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
 import random
+import SimpleITK as sitk
 
 
 class BrainDataset(BaseDataset):
@@ -31,9 +32,9 @@ class BrainDataset(BaseDataset):
     #     Returns:
     #         the modified parser.
     #     """
-        parser.add_argument('--brain_dataset', type=float, default=1.0, help='to be used with 2D slices of brain MRI images')
-        parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
-        return parser
+        # parser.add_argument('--brain_dataset', type=float, default=1.0, help='to be used with 2D slices of brain MRI images')
+        # parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
+        # return parser
 
     def __init__(self, opt):
         """Initialize this dataset class.
@@ -82,8 +83,10 @@ class BrainDataset(BaseDataset):
         else:   # randomize the index for domain B to avoid fixed pairs.
             index_B = random.randint(0, self.B_size - 1)
         B_path = self.B_paths[index_B]
-        A_img = Image.open(A_path).convert('RGB')
-        B_img = Image.open(B_path).convert('RGB')
+        # A_img = Image.open(A_path).convert('RGB')
+        # B_img = Image.open(B_path).convert('RGB')
+        A_img = sitk.ReadImage(A_path)
+        A_img = sitk.ReadImage(B_path)
         # apply image transformation
         A = self.transform_A(A_img)
         B = self.transform_B(B_img)
