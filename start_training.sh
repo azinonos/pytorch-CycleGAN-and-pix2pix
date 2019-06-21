@@ -1,1 +1,11 @@
-python train.py --dataroot ../brain_data/slices/brain_slices_0-90d_unregistered/ --name brain_coreg_0-90d_unregistered_pix2pix_01  --model pix2pix --direction AtoB --input_nc 1 --output_nc 1
+#!/bin/bash
+
+# PARAMETERS
+DATA='brain_slices_0-90d_coregistered_atlas'
+EXP_NAME='brain_coreg_atlas_0-90d_pix2pix_01'
+MODEL='pix2pix'
+INPUT_NC=1
+OUTPUT_NC=1
+
+# TRAINING
+python train.py --dataroot ../brain_data/slices/$DATA/ --name $EXP_NAME  --model $MODEL --direction AtoB --input_nc $INPUT_NC --output_nc $OUTPUT_NC
