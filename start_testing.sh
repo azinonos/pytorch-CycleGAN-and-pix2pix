@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # PARAMETERS
-DATA='brain_slices_0-90d_coregistered_CycleGAN'
-EXP_NAME='brain_coreg_0-90d_cyclegan_01'
-MODEL='cycle_gan'
-NUM_TEST=200
+DATA='brain_slices_0-90d_coregistered_atlas_tumourOnly'
+EXP_NAME='brain_coreg_atlas_tumourOnly_0-90d_pix2pix_03'
+MODEL='pix2pix'
+NUM_TEST=1000
 INPUT_NC=1
 OUTPUT_NC=1
 
