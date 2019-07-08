@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # PARAMETERS
-DATA='brain_slices_0-90d_coregistered_atlas'
-EXP_NAME='brain_coreg_atlas_0-90d_pix2pix_01'
+DATA='brain_slices_0-90d_coregistered_atlas_tumourOnly'
+EXP_NAME='brain_coreg_atlas_tumourOnly_0-90d_pix2pix_03'
 MODEL='pix2pix'
 INPUT_NC=1
 OUTPUT_NC=1
