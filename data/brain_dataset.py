@@ -1,100 +1,63 @@
-"""Dataset class template
-
-This module provides a template for users to implement custom datasets.
-You can specify '--dataset_mode template' to use this dataset.
-The class name should be consistent with both the filename and its dataset_mode option.
-The filename should be <dataset_mode>_dataset.py
-The class name should be <Dataset_mode>Dataset.py
-You need to implement the following functions:
-    -- <modify_commandline_options>:　Add dataset-specific options and rewrite default values for existing options.
-    -- <__init__>: Initialize this dataset class.
-    -- <__getitem__>: Return a data point and its metadata information.
-    -- <__len__>: Return the number of images.
-"""
 import os.path
-from data.base_dataset import BaseDataset, get_transform
-from data.image_folder import make_dataset_brain
+from data.base_dataset import BaseDataset, get_params, get_transform
+from data.image_folder import make_dataset
 from PIL import Image
-import random
-# import SimpleITK as sitk
 
 
 class BrainDataset(BaseDataset):
-    """A template dataset class for you to implement custom datasets."""
-    # @staticmethod
-    # def modify_commandline_options(parser, is_train):
-    #     """Add new dataset-specific options, and rewrite default values for existing options.
+    """A dataset class for paired image dataset.
 
-    #     Parameters:
-    #         parser          -- original option parser
-    #         is_train (bool) -- whether training phase or test phase. You can use this flag to add training-specific or test-specific options.
-
-    #     Returns:
-    #         the modified parser.
-    #     """
-        # parser.add_argument('--brain_dataset', type=float, default=1.0, help='to be used with 2D slices of brain MRI images')
-        # parser.set_defaults(max_dataset_size=10, new_dataset_option=2.0)  # specify dataset-specific default values
-        # return parser
+    It assumes that the directory '/path/to/data/train' contains image pairs in the form of {A,B}.
+    During test time, you need to prepare a directory '/path/to/data/test'.
+    """
 
     def __init__(self, opt):
         """Initialize this dataset class.
 
         Parameters:
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
-
-        A few things can be done here.
-        - save the options (have been done in BaseDataset)
-        - get image paths and meta information of the dataset.
-        - define the image transformation.
         """
-        # save the option and dataset root
         BaseDataset.__init__(self, opt)
-        self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')  # create a path '/path/to/data/trainA'
-        self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')  # create a path '/path/to/data/trainB'
-
-        self.A_paths = sorted(make_dataset_brain(self.dir_A, opt.max_dataset_size))   # load images from '/path/to/data/trainA'
-        self.B_paths = sorted(make_dataset_brain(self.dir_B, opt.max_dataset_size))    # load images from '/path/to/data/trainB'
-        self.A_size = len(self.A_paths)  # get the size of dataset A
-        self.B_size = len(self.B_paths)  # get the size of dataset B
-        btoA = self.opt.direction == 'BtoA'
-        input_nc = self.opt.output_nc if btoA else self.opt.input_nc       # get the number of channels of input image
-        output_nc = self.opt.input_nc if btoA else self.opt.output_nc      # get the number of channels of output image
-        # Change Transform later
-        self.transform_A = get_transform(self.opt, grayscale=(input_nc == 1))
-        self.transform_B = get_transform(self.opt, grayscale=(output_nc == 1))
+        self.dir_AB = os.path.join(opt.dataroot, opt.phase)  # get the image directory
+        self.AB_paths = sorted(make_dataset(self.dir_AB, opt.max_dataset_size))  # get image paths
+        assert(self.opt.load_size >= self.opt.crop_size)   # crop_size should be smaller than the size of loaded image
+        self.input_nc = self.opt.output_nc if self.opt.direction == 'BtoA' else self.opt.input_nc
+        self.output_nc = self.opt.input_nc if self.opt.direction == 'BtoA' else self.opt.output_nc
 
     def __getitem__(self, index):
         """Return a data point and its metadata information.
 
         Parameters:
-            index -- a random integer for data indexing
+            index - - a random integer for data indexing
 
-        Returns:
-            a dictionary of data with their names. It usually contains the data itself and its metadata information.
-
-        Step 1: get a random image path: e.g., path = self.image_paths[index]
-        Step 2: load your data from the disk: e.g., image = Image.open(path).convert('RGB').
-        Step 3: convert your data to a PyTorch tensor. You can use helpder functions such as self.transform. e.g., data = self.transform(image)
-        Step 4: return a data point as a dictionary.
+        Returns a dictionary that contains A, B, A_paths and B_paths
+            A (tensor) - - an image in the input domain
+            B (tensor) - - its corresponding image in the target domain
+            A_paths (str) - - image paths
+            B_paths (str) - - image paths (same as A_paths)
         """
-        A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
-        if self.opt.serial_batches:   # make sure index is within then range
-            index_B = index % self.B_size
-        else:   # randomize the index for domain B to avoid fixed pairs.
-            index_B = random.randint(0, self.B_size - 1)
-        B_path = self.B_paths[index_B]
-        A_img = Image.open(A_path).convert('RGB')
-        B_img = Image.open(B_path).convert('RGB')
-        # apply image transformation
-        A = self.transform_A(A_img)
-        B = self.transform_B(B_img)
+        # read a image given a random integer index
+        AB_path = self.AB_paths[index]
+        AB = Image.open(AB_path).convert('RGB')
+        # split AB image into A and B
+        w, h = AB.size
+        w2 = int(w / 2)
+        A = AB.crop((0, 0, w2, h))
+        B = AB.crop((w2, 0, w, h))
 
-        return {'A': A, 'B': B, 'A_paths': A_path, 'B_paths': B_path}
+        # apply the same transform to both A and B
+        transform_params = get_params(self.opt, A.size)
+        A_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
+        B_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
+
+        A = A_transform(A)
+        B = B_transform(B)
+
+        # Extract Time Period
+        time_period = int(AB_path.split('_')[-1].split('.')[0][:-1])
+
+        return {'A': A, 'B': B, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}
 
     def __len__(self):
-        """Return the total number of images.
-
-        As we have two datasets with potentially different number of images,
-        we take a maximum of
-        """
-        return max(self.A_size, self.B_size)
+        """Return the total number of images in the dataset."""
+        return len(self.AB_paths)
