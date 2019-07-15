@@ -51,7 +51,8 @@ class TimePredictorModel(BaseModel):
 
         if self.isTrain:
             # define loss functions
-            self.criterionL1 = torch.nn.L1Loss()
+            # self.criterionL1 = torch.nn.L1Loss()
+            self.criterionL2 = torch.nn.MSELoss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_D)
@@ -78,7 +79,7 @@ class TimePredictorModel(BaseModel):
     def backward_D(self):
         # Calculate Loss for D
         true_time_matrix = torch.ones(self.prediction.shape) * self.true_time
-        self.loss_D_real = self.criterionL1(true_time_matrix, self.prediction)
+        self.loss_D_real = self.criterionL2(true_time_matrix, self.prediction)
         self.loss_D = self.loss_D_real
         self.loss_D.backward()
 
