@@ -79,7 +79,7 @@ class TimePredictorModel(BaseModel):
     def backward_D(self):
         # Calculate Loss for D
         true_time_matrix = torch.ones(self.prediction.shape) * self.true_time
-        self.loss_D_real = self.criterionL2(true_time_matrix, self.prediction)
+        self.loss_D_real = self.criterionL2(true_time_matrix, self.prediction.cpu())
         self.loss_D = self.loss_D_real
         self.loss_D.backward()
 

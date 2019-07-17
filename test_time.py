@@ -66,6 +66,8 @@ def predict_time(opt=None, dataset=None, model=None):
 
     print("Loss for {} set: L1: {}, MSE: {}".format(opt.phase, loss_l1, loss_mse))
 
+    return predictions, true_times
+
 if __name__ == '__main__':
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
@@ -75,4 +77,7 @@ if __name__ == '__main__':
     opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
     opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
 
-    predict_time(opt)
+    predictions, true_times = predict_time(opt)
+
+    for i, (pred, true_t) in enumerate(zip(predictions, true_times)):
+        print("Image {}: Predicted {}, True time {}".format(i, pred, true_t))
