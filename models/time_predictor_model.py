@@ -25,7 +25,7 @@ class TimePredictorModel(BaseModel):
         By default, we use UNet with batchnorm, and aligned datasets.
         """
         # changing the default values to match the pix2pix paper (https://phillipi.github.io/pix2pix/)
-        parser.set_defaults(norm='batch', netG='unet_256', dataset_mode='aligned')
+        parser.set_defaults(norm='batch', dataset_mode='aligned')
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
@@ -46,13 +46,15 @@ class TimePredictorModel(BaseModel):
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['D']
         # define network
-        self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
+        # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
+        #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, 'time',
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
             # define loss functions
-            # self.criterionL1 = torch.nn.L1Loss()
-            self.criterionL2 = torch.nn.MSELoss()
+            self.criterionL1 = torch.nn.L1Loss()
+            # self.criterionL2 = torch.nn.MSELoss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_D)
@@ -79,7 +81,7 @@ class TimePredictorModel(BaseModel):
     def backward_D(self):
         # Calculate Loss for D
         true_time_matrix = torch.ones(self.prediction.shape) * self.true_time
-        self.loss_D_real = self.criterionL2(true_time_matrix, self.prediction.cpu())
+        self.loss_D_real = self.criterionL1(true_time_matrix, self.prediction.cpu())
         self.loss_D = self.loss_D_real
         self.loss_D.backward()
 

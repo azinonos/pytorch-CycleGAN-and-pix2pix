@@ -198,6 +198,8 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
     elif netD == 'pixel':     # classify if each pixel is real or fake
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
+    elif netD == 'time':
+        net = TimeDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % net)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -614,3 +616,48 @@ class PixelDiscriminator(nn.Module):
     def forward(self, input):
         """Standard forward."""
         return self.net(input)
+
+class TimeDiscriminator(nn.Module):
+    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
+        """Construct a 1x1 PatchGAN discriminator
+
+        Parameters:
+            input_nc (int)  -- the number of channels in input images
+            ndf (int)       -- the number of filters in the last conv layer
+            norm_layer      -- normalization layer
+        """
+        super(TimeDiscriminator, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func != nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer != nn.InstanceNorm2d
+
+        self.net = [
+            nn.Conv2d(input_nc, ndf, kernel_size=16, stride=8, padding=0),
+            nn.ReLU(),
+            norm_layer(ndf),
+
+            nn.Conv2d(ndf, ndf * 2, kernel_size=9, stride=8, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.ReLU(),
+
+            nn.Conv2d(ndf * 2, 1, kernel_size=3, stride=1, padding=0, bias=use_bias)
+            ]
+
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        """Standard forward."""
+        return self.net(input)
+
+# Used to print shape of input using nn.Sequential
+class PrintLayer(nn.Module):
+    def __init__(self):
+        super(PrintLayer, self).__init__()
+    
+    def forward(self, x):
+        # Do your print / debug stuff here
+        print("Input Size:", x.shape)
+        return x
