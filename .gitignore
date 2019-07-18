@@ -41,3 +41,8 @@ test/.coverage
 test/data/legacy_serialized.pt
 *~
 .idea
+
+start_training.sh
+start_testing.sh
+start_training_time.sh
+start_testing_time.sh
