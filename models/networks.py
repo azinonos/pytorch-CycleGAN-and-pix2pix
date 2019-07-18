@@ -635,15 +635,31 @@ class TimeDiscriminator(nn.Module):
             use_bias = norm_layer != nn.InstanceNorm2d
 
         self.net = [
-            nn.Conv2d(input_nc, ndf, kernel_size=16, stride=8, padding=0),
+
+            # PrintLayer(),
+
+            nn.Conv2d(input_nc, ndf, kernel_size=9, stride=4, padding=0),
             nn.ReLU(),
             norm_layer(ndf),
 
-            nn.Conv2d(ndf, ndf * 2, kernel_size=9, stride=8, padding=0, bias=use_bias),
+            # PrintLayer(),
+
+            nn.Conv2d(ndf, ndf * 2, kernel_size=9, stride=4, padding=0, bias=use_bias),
             norm_layer(ndf * 2),
             nn.ReLU(),
 
-            nn.Conv2d(ndf * 2, 1, kernel_size=3, stride=1, padding=0, bias=use_bias)
+            # PrintLayer(),
+
+            nn.Conv2d(ndf * 2, ndf * 2, kernel_size=7, stride=2, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.ReLU(),
+
+            # PrintLayer(),
+
+            nn.Conv2d(ndf * 2, 1, kernel_size=4, stride=1, padding=0, bias=use_bias)
+
+            # PrintLayer()
+
             ]
 
         self.net = nn.Sequential(*self.net)
