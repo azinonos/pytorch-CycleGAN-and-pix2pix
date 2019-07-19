@@ -636,29 +636,29 @@ class TimeDiscriminator(nn.Module):
 
         self.net = [
 
-            # PrintLayer(),
+            PrintLayer(),
 
-            nn.Conv2d(input_nc, ndf, kernel_size=9, stride=4, padding=0),
+            nn.Conv2d(input_nc, ndf, kernel_size=5, stride=4, padding=0),
             nn.ReLU(),
             norm_layer(ndf),
 
-            # PrintLayer(),
+            PrintLayer(),
 
-            nn.Conv2d(ndf, ndf * 2, kernel_size=9, stride=4, padding=0, bias=use_bias),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=5, stride=4, padding=0, bias=use_bias),
             norm_layer(ndf * 2),
             nn.ReLU(),
 
-            # PrintLayer(),
+            PrintLayer(),
 
-            nn.Conv2d(ndf * 2, ndf * 2, kernel_size=7, stride=2, padding=0, bias=use_bias),
+            nn.Conv2d(ndf * 2, ndf * 2, kernel_size=5, stride=2, padding=0, bias=use_bias),
             norm_layer(ndf * 2),
             nn.ReLU(),
 
-            # PrintLayer(),
+            PrintLayer(),
 
-            nn.Conv2d(ndf * 2, 1, kernel_size=4, stride=1, padding=0, bias=use_bias)
+            nn.Conv2d(ndf * 2, 1, kernel_size=6, stride=1, padding=0, bias=use_bias),
 
-            # PrintLayer()
+            PrintLayer()
 
             ]
 
