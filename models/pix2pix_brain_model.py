@@ -33,6 +33,7 @@ class Pix2PixBrainModel(BaseModel):
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
+            parser.add_argument('--lambda_L2', type=float, default=0.7, help='weighted for tumour tissue over rest of brain. Range [0,1]')
 
         return parser
 
@@ -69,6 +70,9 @@ class Pix2PixBrainModel(BaseModel):
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_G)
             self.optimizers.append(self.optimizer_D)
+
+            # Check if lambda_L2 is in range [0,1]
+            assert (0 <= self.opt.lambda_L2 <= 1)
 
     def set_input(self, input):
         """Unpack input data from the dataloader and perform necessary pre-processing steps.
@@ -121,13 +125,22 @@ class Pix2PixBrainModel(BaseModel):
         ### END ATTEMPT 1
 
         ### ATTEMPT 2
+        # fake_B_tumour = self.fake_B.clone().detach()
+        # real_B_tumour = self.real_B.clone().detach()
+        # fake_B_tumour[fake_B_tumour < 0.5] = 0
+        # real_B_tumour[fake_B_tumour < 0.5] = 0
+        # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1 + \
+        #                  self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L1 * 2
+        ### END ATTEMPT 2
+
+        ### ATTEMPT 3
         fake_B_tumour = self.fake_B.clone().detach()
         real_B_tumour = self.real_B.clone().detach()
         fake_B_tumour[fake_B_tumour < 0.5] = 0
         real_B_tumour[fake_B_tumour < 0.5] = 0
-        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1 + \
-                         self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L1 * 2
-        ### END ATTEMPT 2
+        self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
+                         self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
+        ### END ATTEMPT 3
 
         # combine loss and calculate gradients
         self.loss_G = self.loss_G_GAN + self.loss_G_L1
