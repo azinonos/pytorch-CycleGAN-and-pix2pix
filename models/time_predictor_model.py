@@ -42,7 +42,7 @@ class TimePredictorModel(BaseModel):
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_real']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
-        self.visual_names = ['real_A','real_B']
+        self.visual_names = ['real_A','real_B', 'diff_map']
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['D']
         # define network
@@ -76,9 +76,9 @@ class TimePredictorModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         # Compute Difference Map between images and feed to network
-        diff_map = self.real_A - self.real_B
+        self.diff_map = self.real_A - self.real_B
         # real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
-        self.prediction = self.netD(diff_map)
+        self.prediction = self.netD(self.diff_map)
 
     def backward_D(self):
         # Calculate Loss for D
