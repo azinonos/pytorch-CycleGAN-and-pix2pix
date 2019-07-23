@@ -48,7 +48,7 @@ class TimePredictorModel(BaseModel):
         # define network
         # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
         #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, 'time',
+        self.netD = networks.define_D(opt.input_nc, opt.ndf, 'time',
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
@@ -75,8 +75,10 @@ class TimePredictorModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
-        self.prediction = self.netD(real_AB)
+        # Compute Difference Map between images and feed to network
+        diff_map = self.real_A - self.real_B
+        # real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
+        self.prediction = self.netD(diff_map)
 
     def backward_D(self):
         # Calculate Loss for D
