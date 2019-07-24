@@ -1,7 +1,7 @@
 import os.path
 from data.base_dataset import BaseDataset, get_params, get_transform
 from data.image_folder import make_dataset
-from PIL import Image
+from PIL import Image, ImageChops
 
 
 class BrainDataset(BaseDataset):
@@ -45,18 +45,23 @@ class BrainDataset(BaseDataset):
         A = AB.crop((0, 0, w2, h))
         B = AB.crop((w2, 0, w, h))
 
+        # Compute Difference Map between images
+        diff_map = ImageChops.difference(A, B)
+
         # apply the same transform to both A and B
         transform_params = get_params(self.opt, A.size)
         A_transform = get_transform(self.opt, transform_params, grayscale=(self.input_nc == 1))
         B_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
+        diff_map_transform = get_transform(self.opt, transform_params, grayscale=(self.output_nc == 1))
 
         A = A_transform(A)
         B = B_transform(B)
+        diff_map = diff_map_transform(diff_map)
 
         # Extract Time Period
         time_period = int(AB_path.split('_')[-1].split('.')[0][:-1])
 
-        return {'A': A, 'B': B, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}
+        return {'A': A, 'B': B, 'diff_map': diff_map, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}
 
     def __len__(self):
         """Return the total number of images in the dataset."""

@@ -70,13 +70,12 @@ class TimePredictorModel(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
+        self.diff_map = input['diff_map'].to(self.device)
         self.true_time = input['time_period'][0]
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        # Compute Difference Map between images and feed to network
-        self.diff_map = self.real_A - self.real_B
         # real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
         self.prediction = self.netD(self.diff_map)
 
