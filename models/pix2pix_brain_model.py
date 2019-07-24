@@ -33,7 +33,7 @@ class Pix2PixBrainModel(BaseModel):
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-            parser.add_argument('--lambda_L2', type=float, default=0.7, help='weighted for tumour tissue over rest of brain. Range [0,1]')
+            parser.add_argument('--lambda_L2', type=float, default=0.5, help='weighted for tumour tissue over rest of brain. Range [0,1]')
 
         return parser
 
