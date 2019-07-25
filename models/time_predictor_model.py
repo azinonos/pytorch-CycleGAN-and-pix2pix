@@ -42,7 +42,7 @@ class TimePredictorModel(BaseModel):
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_real']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
-        self.visual_names = ['real_A','real_B', 'diff_map', 'hist_diff']
+        self.visual_names = ['real_A','real_B', 'diff_map']
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['D']
         # define network
