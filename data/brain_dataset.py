@@ -2,6 +2,7 @@ import os.path
 from data.base_dataset import BaseDataset, get_params, get_transform
 from data.image_folder import make_dataset
 from PIL import Image, ImageChops
+import numpy as np
 
 
 class BrainDataset(BaseDataset):
@@ -45,8 +46,12 @@ class BrainDataset(BaseDataset):
         A = AB.crop((0, 0, w2, h))
         B = AB.crop((w2, 0, w, h))
 
-        # Compute Difference Map between images
+        # Compute Difference Map between images and histogram difference
         diff_map = ImageChops.difference(A, B)
+        hist_a, _ = np.histogram(np.asarray(A), bins=255)
+        hist_b, _ = np.histogram(np.asarray(B), bins=255)
+        hist_diff = (hist_a - hist_b)[np.newaxis, :]
+        hist_diff = hist_diff / np.linalg.norm(hist_diff) # Normalize
 
         # apply the same transform to both A and B
         transform_params = get_params(self.opt, A.size)
@@ -61,7 +66,7 @@ class BrainDataset(BaseDataset):
         # Extract Time Period
         time_period = int(AB_path.split('_')[-1].split('.')[0][:-1])
 
-        return {'A': A, 'B': B, 'diff_map': diff_map, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}
+        return {'A': A, 'B': B, 'diff_map': diff_map, 'hist_diff': hist_diff, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}
 
     def __len__(self):
         """Return the total number of images in the dataset."""

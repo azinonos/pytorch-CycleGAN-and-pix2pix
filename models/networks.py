@@ -26,6 +26,8 @@ def get_norm_layer(norm_type='instance'):
     """
     if norm_type == 'batch':
         norm_layer = functools.partial(nn.BatchNorm2d, affine=True, track_running_stats=True)
+    elif norm_type == 'batch_1d':
+        norm_layer = functools.partial(nn.BatchNorm1d, affine=True, track_running_stats=True)
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
     elif norm_type == 'none':
@@ -200,6 +202,8 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     elif netD == 'time':
         net = TimeDiscriminator(input_nc, ndf, norm_layer=norm_layer)
+    elif netD == 'time_hist':
+        net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % net)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -651,6 +655,57 @@ class TimeDiscriminator(nn.Module):
             # PrintLayer(),
 
             nn.Conv2d(ndf * 2, 1, kernel_size=12, stride=1, padding=0, bias=use_bias),
+
+            # PrintLayer()
+
+            ]
+
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        """Standard forward."""
+        return self.net(input)
+
+class TimeDiscriminatorHist(nn.Module):
+    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d):
+        """Construct a 1x1 PatchGAN discriminator
+
+        Parameters:
+            input_nc (int)  -- the number of channels in input images
+            ndf (int)       -- the number of filters in the last conv layer
+            norm_layer      -- normalization layer
+        """
+        super(TimeDiscriminatorHist, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func != nn.InstanceNorm1d
+        else:
+            use_bias = norm_layer != nn.InstanceNorm1d
+
+        self.net = [
+
+            # PrintLayer(),
+
+            nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
+            nn.ReLU(),
+            norm_layer(ndf),
+
+            # PrintLayer(),
+
+            nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.ReLU(),
+
+            # PrintLayer(),
+
+            nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
+            norm_layer(ndf),
+            nn.ReLU(),
+
+            # PrintLayer(),
+
+            nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
 
             # PrintLayer()
 

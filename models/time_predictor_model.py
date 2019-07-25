@@ -42,14 +42,14 @@ class TimePredictorModel(BaseModel):
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
         self.loss_names = ['D_real']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
-        self.visual_names = ['real_A','real_B', 'diff_map']
+        self.visual_names = ['real_A','real_B', 'diff_map', 'hist_diff']
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['D']
         # define network
         # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
         #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netD = networks.define_D(opt.input_nc, opt.ndf, 'time',
-                                          opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netD = networks.define_D(opt.input_nc, opt.ndf, 'time_hist',
+                                          opt.n_layers_D, 'batch_1d', opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
             # define loss functions
@@ -71,13 +71,15 @@ class TimePredictorModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.diff_map = input['diff_map'].to(self.device)
+        self.hist_diff = input['hist_diff'].float().to(self.device)
         self.true_time = input['time_period'][0]
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         # real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
-        self.prediction = self.netD(self.diff_map)
+        # self.prediction = self.netD(self.diff_map)
+        self.prediction = self.netD(self.hist_diff)
 
     def backward_D(self):
         # Calculate Loss for D
