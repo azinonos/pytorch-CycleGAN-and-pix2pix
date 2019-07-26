@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
@@ -204,6 +205,8 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         net = TimeDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     elif netD == 'time_hist':
         net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer)
+    elif netD == 'autoenc':
+        net = AutoEncoderNet(input_nc, ndf, norm_layer=norm_layer)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % net)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -716,6 +719,87 @@ class TimeDiscriminatorHist(nn.Module):
     def forward(self, input):
         """Standard forward."""
         return self.net(input)
+
+class AutoEncoderNet(nn.Module):
+    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, hidden_size=128):
+        """Construct a 1x1 PatchGAN discriminator
+
+        Parameters:
+            input_nc (int)  -- the number of channels in input images
+            ndf (int)       -- the number of filters in the last conv layer
+            norm_layer      -- normalization layer
+        """
+        super(AutoEncoderNet, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func != nn.InstanceNorm1d
+        else:
+            use_bias = norm_layer != nn.InstanceNorm1d
+
+        # Store class variable
+        self.ndf = ndf
+
+        # Encoder
+        self.conv1 = nn.Conv2d(in_channels=input_nc, out_channels=ndf, kernel_size=3, stride=1, padding=1) # b x 16 x 32 x 32
+        self.bn1 = norm_layer(ndf)
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride = 2) # b x 16 x 16 x 16
+        self.conv2 = nn.Conv2d(in_channels=ndf, out_channels=ndf*2, kernel_size=3, stride=1, padding=1) # b x 32 x 16 x 16
+        self.bn2 = norm_layer(ndf*2)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride = 2) # b x 32 x 8 x 8
+        self.conv3 = nn.Conv2d(in_channels=ndf*2, out_channels=ndf*3, kernel_size=3, stride=1, padding=1) # b x 48 x 8 x 8
+        self.bn3 = norm_layer(ndf*3)
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride = 2) # b x 32 x 8 x 8
+        self.fc1 = nn.Linear(in_features=ndf*3*32*32, out_features=hidden_size) # hidden_size
+
+        # Decoder
+        self.fc2 = nn.Linear(in_features=hidden_size, out_features=ndf*3*32*32) # b x 48 x 8 x 8
+        self.bn5 = nn.BatchNorm1d(num_features=ndf*3*32*32)
+        self.deconv2 = nn.ConvTranspose2d(in_channels=ndf*3, out_channels=ndf*2, kernel_size=4, stride=2, padding=1) # b x 32 x 16 x 16
+        self.bn7 = norm_layer(ndf * 2)
+        self.deconv3 = nn.ConvTranspose2d(in_channels=ndf*2, out_channels=ndf, kernel_size=2, stride=2, padding=0) # b x 16 x 32 x 32
+        self.bn8 = norm_layer(ndf)
+        self.deconv4 = nn.ConvTranspose2d(in_channels=ndf, out_channels=input_nc, kernel_size=4, stride=2, padding=1) # b x 3 x 32 x 32
+
+
+    def encode(self, x):
+
+        # print("ENCODER")
+        # print("Input Shape:", x.shape)
+        x = F.relu(self.bn1(self.pool1(self.conv1(x))))
+        # print("Step 1 Shape:", x.shape)
+        x = F.relu(self.bn2(self.pool2(self.conv2(x))))
+        # print("Step 2 Shape:", x.shape)
+        x = F.relu(self.bn3(self.pool3(self.conv3(x))))
+        # print("Step 3 Shape:", x.shape)
+        x = x.view(x.shape[0], -1)
+        # print("Step 4 Shape:", x.shape)
+        x = F.relu(self.fc1(x))
+        # print("Step 5 Shape:", x.shape)
+
+        return x
+
+    def decode(self, z):
+
+        # print("DECODER")
+        # print("Input Shape:", z.shape)
+        z = F.relu(self.bn5(self.fc2(z)))
+        # print("Step 1 Shape:", z.shape)
+        z = z.view(-1, self.ndf*3, 32, 32)
+        # print("Step 2 Shape:", z.shape)
+        z = F.relu(self.bn7(self.deconv2(z)))
+        # print("Step 3 Shape:", z.shape)
+        z = F.relu(self.bn8(self.deconv3(z)))
+        # print("Step 4 Shape:", z.shape)
+        z = torch.tanh(self.deconv4(z))
+        # print("Step 5 Shape:", z.shape)
+
+        return z  
+
+    def forward(self, input):
+        z = self.encode(input)
+        recon = self.decode(z)
+        return recon
 
 # Used to print shape of input using nn.Sequential
 class PrintLayer(nn.Module):
