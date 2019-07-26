@@ -46,3 +46,4 @@ start_training.sh
 start_testing.sh
 start_training_time.sh
 start_testing_time.sh
+start_training_autoenc.sh
