@@ -690,28 +690,14 @@ class TimeDiscriminatorHist(nn.Module):
 
             # PrintLayer(),
 
-            nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
+            nn.Linear(255, 50, bias=True),
             nn.ReLU(),
-            norm_layer(ndf),
-            nn.Dropout(0.5),
+            # norm_layer(ndf),
 
             # PrintLayer(),
 
-            nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
-            norm_layer(ndf * 2),
+            nn.Linear(50, 1, bias=True),
             nn.ReLU(),
-            nn.Dropout(0.5),
-
-            # PrintLayer(),
-
-            nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
-            norm_layer(ndf),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-
-            # PrintLayer(),
-
-            nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
 
             # PrintLayer()
 
