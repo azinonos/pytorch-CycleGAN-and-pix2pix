@@ -694,6 +694,9 @@ class TimeDiscriminatorHist(nn.Module):
             nn.ReLU(),
             # norm_layer(ndf),
 
+            nn.Linear(50, 50, bias=True),
+            nn.ReLU(),
+
             # PrintLayer(),
 
             nn.Linear(50, 1, bias=True),
