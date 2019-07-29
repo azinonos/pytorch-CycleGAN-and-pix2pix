@@ -204,9 +204,11 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
     elif netD == 'time':
         net = TimeDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     elif netD == 'time_hist':
-        net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer)
+        net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer, input_size=255)
     elif netD == 'autoenc':
         net = AutoEncoderNet(input_nc, ndf, norm_layer=norm_layer)
+    elif netD == 'time_autoenc':
+        net = TimeDiscriminatorAutoEnc(input_nc, ndf, norm_layer=norm_layer, input_size=256)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' % net)
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -672,7 +674,7 @@ class TimeDiscriminator(nn.Module):
 class TimeDiscriminatorHist(nn.Module):
     """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
 
-    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=255):
         """Construct a 1x1 PatchGAN discriminator
 
         Parameters:
@@ -690,7 +692,51 @@ class TimeDiscriminatorHist(nn.Module):
 
             # PrintLayer(),
 
-            nn.Linear(255, 50, bias=True),
+            nn.Linear(input_size, 50, bias=True),
+            nn.ReLU(),
+            # norm_layer(ndf),
+
+            nn.Linear(50, 50, bias=True),
+            nn.ReLU(),
+
+            # PrintLayer(),
+
+            nn.Linear(50, 1, bias=True),
+            nn.ReLU(),
+
+            # PrintLayer()
+
+            ]
+
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        """Standard forward."""
+        return self.net(input)
+
+
+class TimeDiscriminatorAutoEnc(nn.Module):
+    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256):
+        """Construct a 1x1 PatchGAN discriminator
+
+        Parameters:
+            input_nc (int)  -- the number of channels in input images
+            ndf (int)       -- the number of filters in the last conv layer
+            norm_layer      -- normalization layer
+        """
+        super(TimeDiscriminatorAutoEnc, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func != nn.InstanceNorm1d
+        else:
+            use_bias = norm_layer != nn.InstanceNorm1d
+
+        self.net = [
+
+            # PrintLayer(),
+
+            nn.Linear(input_size, 50, bias=True),
             nn.ReLU(),
             # norm_layer(ndf),
 
@@ -791,7 +837,12 @@ class AutoEncoderNet(nn.Module):
     def forward(self, input):
         z = self.encode(input)
         recon = self.decode(z)
+
         return recon
+
+    def forward_vectorOnly(self, input):
+        z = self.encode(input)
+        return z
 
 # Used to print shape of input using nn.Sequential
 class PrintLayer(nn.Module):

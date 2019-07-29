@@ -78,6 +78,12 @@ class AutoEncoderModel(BaseModel):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.recreated_diff_map = self.netD(self.diff_map)
 
+    def forward_getVector(self):
+        ''' Run forward pass but only on encoder, to to return latent vector '''
+        with torch.no_grad():
+            latent_vector = self.netD.forward_vectorOnly(self.diff_map)
+        return latent_vector
+
     def backward_D(self):
         # Calculate Loss for D
         self.loss_D_real = self.criterionL1(self.diff_map, self.recreated_diff_map)

@@ -1,6 +1,8 @@
 import torch
 from .base_model import BaseModel
 from . import networks
+from copy import deepcopy
+from models import create_model
 
 
 class TimePredictorModel(BaseModel):
@@ -48,8 +50,36 @@ class TimePredictorModel(BaseModel):
         # define network
         # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
         #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netD = networks.define_D(opt.input_nc, opt.ndf, 'time_hist',
-                                          opt.n_layers_D, 'batch_1d', opt.init_type, opt.init_gain, self.gpu_ids)
+        # opt.netD can be ['basic', 'time', 'time_hist', 'autoenc']
+        self.Dtype = opt.netD
+        input_channel_size = opt.input_nc + opt.output_nc
+
+        # These type of discriminators handle 1D data, so change
+        # the corresponding sizes
+        if opt.netD == 'time_hist' or opt.netD == 'time_autoenc':
+            opt.norm = 'batch_1d'
+            input_channel_size = opt.input_nc
+
+        if opt.netD == 'time_autoenc':
+            # Setup Autoencoder if given in arguments
+            print("\nSetting up AutoEncoder\n")
+            opt_autoenc = deepcopy(opt) # copy train options and change later
+            opt_autoenc.model = 'auto_encoder'
+            opt_autoenc.name = 'autoenc_02'
+            opt_autoenc.netD = 'autoenc'
+            opt_autoenc.norm = 'batch'
+            # hard-code some parameters for test
+            opt_autoenc.num_threads = 0   # test code only supports num_threads = 1
+            opt_autoenc.batch_size = 1    # test code only supports batch_size = 1
+            opt_autoenc.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
+            opt_autoenc.no_flip = True    # no flip; comment this line if results on flipped images are needed.
+            opt_autoenc.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
+            opt_autoenc.isTrain = False
+            self.autoencoder = create_model(opt_autoenc)      # create a model given opt_autoenc.model and other options
+            self.autoencoder.setup(opt_autoenc)               # regular setup: load
+
+        self.netD = networks.define_D(input_channel_size, opt.ndf, opt.netD,
+                                          opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
             # define loss functions
@@ -77,10 +107,17 @@ class TimePredictorModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        # real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
-        # self.prediction = self.netD(real_AB)
-        # self.prediction = self.netD(self.diff_map)
-        self.prediction = self.netD(self.hist_diff)
+        if self.Dtype == 'basic':
+            real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
+            self.prediction = self.netD(real_AB)
+        elif self.Dtype == 'time':
+            self.prediction = self.netD(self.diff_map)
+        elif self.Dtype == 'time_hist':
+            self.prediction = self.netD(self.hist_diff)
+        elif self.Dtype == 'time_autoenc':
+            self.autoencoder.diff_map = self.diff_map # Bypass Input and just store the diff map in the object
+            latent_vector = self.autoencoder.forward_getVector() 
+            self.prediction = self.netD(latent_vector)
 
     def backward_D(self):
         # Calculate Loss for D
