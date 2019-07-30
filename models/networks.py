@@ -206,7 +206,7 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
     elif netD == 'time_hist':
         net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer, input_size=255)
     elif netD == 'autoenc':
-        net = AutoEncoderNet(input_nc, ndf, norm_layer=norm_layer)
+        net = AutoEncoderNet(input_nc, ndf, norm_layer=norm_layer, hidden_size=256)
     elif netD == 'time_autoenc':
         net = TimeDiscriminatorAutoEnc(input_nc, ndf, norm_layer=norm_layer, input_size=256)
     else:
