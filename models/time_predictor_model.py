@@ -75,6 +75,7 @@ class TimePredictorModel(BaseModel):
             opt_autoenc.no_flip = True    # no flip; comment this line if results on flipped images are needed.
             opt_autoenc.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
             opt_autoenc.isTrain = False
+            print("Options Autoenc: {}\n\n".format(opt_autoenc))
             self.autoencoder = create_model(opt_autoenc)      # create a model given opt_autoenc.model and other options
             self.autoencoder.setup(opt_autoenc)               # regular setup: load
 
