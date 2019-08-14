@@ -40,23 +40,23 @@ class AutoEncoderModel(BaseModel):
         """
         BaseModel.__init__(self, opt)
         # specify the training losses you want to print out. The training/test scripts will call <BaseModel.get_current_losses>
-        self.loss_names = ['D_real']
+        self.loss_names = ['AE_real']
         # specify the images you want to save/display. The training/test scripts will call <BaseModel.get_current_visuals>
         self.visual_names = ['real_A','real_B', 'diff_map', 'recreated_diff_map']
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
-        self.model_names = ['D']
+        self.model_names = ['AE']
         # define network
         # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
         #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netD = networks.define_D(opt.input_nc, opt.ndf, 'autoenc',
+        self.netAE = networks.define_D(opt.input_nc, opt.ndf, 'autoenc',
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
             # define loss functions
             self.criterionL1 = torch.nn.L1Loss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
-            self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-            self.optimizers.append(self.optimizer_D)
+            self.optimizer_AE = torch.optim.Adam(self.netAE.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizers.append(self.optimizer_AE)
 
     def set_input(self, input):
         """Unpack input data from the dataloader and perform necessary pre-processing steps.
@@ -76,24 +76,24 @@ class AutoEncoderModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.recreated_diff_map = self.netD(self.diff_map)
+        self.recreated_diff_map = self.netAE(self.diff_map)
 
     def forward_getVector(self):
         ''' Run forward pass but only on encoder, to to return latent vector '''
         with torch.no_grad():
-            latent_vector = self.netD.forward_vectorOnly(self.diff_map)
+            latent_vector = self.netAE.forward_vectorOnly(self.diff_map)
         return latent_vector
 
-    def backward_D(self):
+    def backward_AE(self):
         # Calculate Loss for D
-        self.loss_D_real = self.criterionL1(self.diff_map, self.recreated_diff_map)
-        self.loss_D = self.loss_D_real
-        self.loss_D.backward()
+        self.loss_AE_real = self.criterionL1(self.diff_map, self.recreated_diff_map)
+        self.loss_AE = self.loss_AE_real
+        self.loss_AE.backward()
 
     def optimize_parameters(self):
         self.forward()                   # compute fake images: G(A)
-        # update D
-        self.set_requires_grad(self.netD, True)  # enable backprop for D
-        self.optimizer_D.zero_grad()     # set D's gradients to zero
-        self.backward_D()                # calculate gradients for D
-        self.optimizer_D.step()          # update D's weights
+        # update AE
+        self.set_requires_grad(self.netAE, True)  # enable backprop for AE
+        self.optimizer_AE.zero_grad()     # set AE's gradients to zero
+        self.backward_AE()                # calculate gradients for AE
+        self.optimizer_AE.step()          # update AE's weights
