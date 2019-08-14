@@ -70,9 +70,9 @@ class TimePredictorModel(BaseModel):
             opt_autoenc.norm = 'batch'
             # hard-code some parameters for test
             opt_autoenc.num_threads = 0   # test code only supports num_threads = 1
-            opt_autoenc.batch_size = 1    # test code only supports batch_size = 1
-            opt_autoenc.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-            opt_autoenc.no_flip = True    # no flip; comment this line if results on flipped images are needed.
+            # opt_autoenc.batch_size = 1    # test code only supports batch_size = 1
+            # opt_autoenc.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
+            # opt_autoenc.no_flip = True    # no flip; comment this line if results on flipped images are needed.
             opt_autoenc.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
             opt_autoenc.isTrain = False
             print("Options Autoenc: {}\n\n".format(opt_autoenc))
