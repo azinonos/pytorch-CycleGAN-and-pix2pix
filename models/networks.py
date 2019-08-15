@@ -731,25 +731,53 @@ class TimeDiscriminatorAutoEnc(nn.Module):
         else:
             use_bias = norm_layer != nn.InstanceNorm1d
 
+        # self.net = [
+
+        #     # PrintLayer(),
+
+        #     nn.Linear(input_size, hidden_size, bias=True),
+        #     nn.ReLU(),
+
+        #     nn.Linear(hidden_size, hidden_size // 2, bias=True),
+        #     nn.ReLU(),
+
+        #     # PrintLayer(),
+
+        #     nn.Linear(hidden_size // 2, 1, bias=True),
+        #     nn.ReLU(),
+
+        #     # PrintLayer()
+
+        #     ]
+
         self.net = [
 
             # PrintLayer(),
 
-            nn.Linear(input_size, hidden_size, bias=True),
+            nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
             nn.ReLU(),
-            # norm_layer(ndf),
+            norm_layer(ndf),
 
-            nn.Linear(hidden_size, hidden_size / 2, bias=True),
+            # PrintLayer(),
+
+            nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
             nn.ReLU(),
 
             # PrintLayer(),
 
-            nn.Linear(hidden_size / 2, 1, bias=True),
+            nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
+            norm_layer(ndf),
             nn.ReLU(),
 
-            # PrintLayer()
+            # PrintLayer(),
+
+            nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
+
+            # PrintLayer(),
 
             ]
+
 
         self.net = nn.Sequential(*self.net)
 

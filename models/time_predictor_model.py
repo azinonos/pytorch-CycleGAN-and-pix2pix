@@ -3,6 +3,7 @@ from .base_model import BaseModel
 from . import networks
 from copy import deepcopy
 from models import create_model
+import numpy as np
 
 
 class TimePredictorModel(BaseModel):
@@ -118,7 +119,7 @@ class TimePredictorModel(BaseModel):
         elif self.Dtype == 'time_autoenc':
             self.autoencoder.diff_map = self.diff_map # Bypass Input and just store the diff map in the object
             latent_vector = self.autoencoder.forward_getVector() 
-            self.prediction = self.netD(latent_vector)
+            self.prediction = self.netD(latent_vector[np.newaxis, :])
 
     def backward_D(self):
         # Calculate Loss for D
