@@ -717,7 +717,7 @@ class TimeDiscriminatorHist(nn.Module):
 
 class TimeDiscriminatorAutoEnc(nn.Module):
 
-    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256, hidden_size=200):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256, hidden_size=30):
         """Construct a 1x1 PatchGAN discriminator
 
         Parameters:
@@ -739,17 +739,12 @@ class TimeDiscriminatorAutoEnc(nn.Module):
             nn.ReLU(),
             # norm_layer(ndf),
 
-            nn.Linear(hidden_size, hidden_size, bias=True),
+            nn.Linear(hidden_size, hidden_size / 2, bias=True),
             nn.ReLU(),
 
             # PrintLayer(),
 
-            nn.Linear(hidden_size, hidden_size, bias=True),
-            nn.ReLU(),
-
-            # PrintLayer(),
-
-            nn.Linear(hidden_size, 1, bias=True),
+            nn.Linear(hidden_size / 2, 1, bias=True),
             nn.ReLU(),
 
             # PrintLayer()
