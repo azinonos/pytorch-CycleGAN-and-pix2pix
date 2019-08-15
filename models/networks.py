@@ -688,62 +688,20 @@ class TimeDiscriminatorHist(nn.Module):
         else:
             use_bias = norm_layer != nn.InstanceNorm1d
 
-        self.net = [
-
-            # PrintLayer(),
-
-            nn.Linear(input_size, 50, bias=True),
-            nn.ReLU(),
-            # norm_layer(ndf),
-
-            nn.Linear(50, 50, bias=True),
-            nn.ReLU(),
-
-            # PrintLayer(),
-
-            nn.Linear(50, 1, bias=True),
-            nn.ReLU(),
-
-            # PrintLayer()
-
-            ]
-
-        self.net = nn.Sequential(*self.net)
-
-    def forward(self, input):
-        """Standard forward."""
-        return self.net(input)
-
-
-class TimeDiscriminatorAutoEnc(nn.Module):
-
-    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256, hidden_size=30):
-        """Construct a 1x1 PatchGAN discriminator
-
-        Parameters:
-            input_nc (int)  -- the number of channels in input images
-            ndf (int)       -- the number of filters in the last conv layer
-            norm_layer      -- normalization layer
-        """
-        super(TimeDiscriminatorAutoEnc, self).__init__()
-        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
-            use_bias = norm_layer.func != nn.InstanceNorm1d
-        else:
-            use_bias = norm_layer != nn.InstanceNorm1d
-
         # self.net = [
 
         #     # PrintLayer(),
 
-        #     nn.Linear(input_size, hidden_size, bias=True),
+        #     nn.Linear(input_size, 50, bias=True),
         #     nn.ReLU(),
+        #     # norm_layer(ndf),
 
-        #     nn.Linear(hidden_size, hidden_size // 2, bias=True),
+        #     nn.Linear(50, 50, bias=True),
         #     nn.ReLU(),
 
         #     # PrintLayer(),
 
-        #     nn.Linear(hidden_size // 2, 1, bias=True),
+        #     nn.Linear(50, 1, bias=True),
         #     nn.ReLU(),
 
         #     # PrintLayer()
@@ -775,6 +733,48 @@ class TimeDiscriminatorAutoEnc(nn.Module):
             nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
 
             # PrintLayer(),
+
+            ]
+
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        """Standard forward."""
+        return self.net(input)
+
+
+class TimeDiscriminatorAutoEnc(nn.Module):
+
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256, hidden_size=30):
+        """Construct a 1x1 PatchGAN discriminator
+
+        Parameters:
+            input_nc (int)  -- the number of channels in input images
+            ndf (int)       -- the number of filters in the last conv layer
+            norm_layer      -- normalization layer
+        """
+        super(TimeDiscriminatorAutoEnc, self).__init__()
+        if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
+            use_bias = norm_layer.func != nn.InstanceNorm1d
+        else:
+            use_bias = norm_layer != nn.InstanceNorm1d
+
+        self.net = [
+
+            # PrintLayer(),
+
+            nn.Linear(input_size, hidden_size, bias=True),
+            nn.ReLU(),
+
+            nn.Linear(hidden_size, hidden_size // 2, bias=True),
+            nn.ReLU(),
+
+            # PrintLayer(),
+
+            nn.Linear(hidden_size // 2, 1, bias=True),
+            nn.ReLU(),
+
+            # PrintLayer()
 
             ]
 
