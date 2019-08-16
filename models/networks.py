@@ -688,53 +688,53 @@ class TimeDiscriminatorHist(nn.Module):
         else:
             use_bias = norm_layer != nn.InstanceNorm1d
 
-        # self.net = [
-
-        #     # PrintLayer(),
-
-        #     nn.Linear(input_size, 50, bias=True),
-        #     nn.ReLU(),
-        #     # norm_layer(ndf),
-
-        #     nn.Linear(50, 50, bias=True),
-        #     nn.ReLU(),
-
-        #     # PrintLayer(),
-
-        #     nn.Linear(50, 1, bias=True),
-        #     nn.ReLU(),
-
-        #     # PrintLayer()
-
-        #     ]
-
         self.net = [
 
             # PrintLayer(),
 
-            nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
+            nn.Linear(input_size, 100, bias=True),
             nn.ReLU(),
-            norm_layer(ndf),
+            # norm_layer(ndf),
 
-            # PrintLayer(),
-
-            nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
-            norm_layer(ndf * 2),
+            nn.Linear(100, 100, bias=True),
             nn.ReLU(),
 
             # PrintLayer(),
 
-            nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
-            norm_layer(ndf),
+            nn.Linear(100, 1, bias=True),
             nn.ReLU(),
 
-            # PrintLayer(),
-
-            nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
-
-            # PrintLayer(),
+            # PrintLayer()
 
             ]
+
+        # self.net = [
+
+        #     # PrintLayer(),
+
+        #     nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
+        #     nn.ReLU(),
+        #     norm_layer(ndf),
+
+        #     # PrintLayer(),
+
+        #     nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
+        #     norm_layer(ndf * 2),
+        #     nn.ReLU(),
+
+        #     # PrintLayer(),
+
+        #     nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
+        #     norm_layer(ndf),
+        #     nn.ReLU(),
+
+        #     # PrintLayer(),
+
+        #     nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
+
+        #     # PrintLayer(),
+
+        #     ]
 
         self.net = nn.Sequential(*self.net)
 
