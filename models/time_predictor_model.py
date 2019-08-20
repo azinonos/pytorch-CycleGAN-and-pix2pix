@@ -57,6 +57,8 @@ class TimePredictorModel(BaseModel):
 
         # These type of discriminators handle 1D data, so change
         # the corresponding sizes
+        if opt.netD == 'time':
+            input_channel_size = opt.input_nc
         if opt.netD == 'time_hist' or opt.netD == 'time_autoenc':
             opt.norm = 'batch_1d'
             input_channel_size = opt.input_nc
