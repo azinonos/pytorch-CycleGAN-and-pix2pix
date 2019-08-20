@@ -626,6 +626,15 @@ class PixelDiscriminator(nn.Module):
         """Standard forward."""
         return self.net(input)
 
+class Flatten(nn.Module):
+
+    def flatten(self, x):
+        N = x.shape[0] # read in N, C, H, W
+        return x.view(N, -1)  # "flatten" the C * H * W values into a single vector per image
+
+    def forward(self, x):
+        return self.flatten(x)
+
 class TimeDiscriminator(nn.Module):
     """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
 
@@ -647,21 +656,45 @@ class TimeDiscriminator(nn.Module):
 
             # PrintLayer(),
 
-            nn.Conv2d(input_nc, ndf, kernel_size=64, stride=4, padding=0),
+            nn.Conv2d(input_nc, ndf, kernel_size=3, stride=1, bias=use_bias),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
             norm_layer(ndf),
 
             # PrintLayer(),
 
-            nn.Conv2d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
-            norm_layer(ndf * 2),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=3, stride=1, bias=use_bias),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            norm_layer(ndf * 2),
 
             # PrintLayer(),
 
-            nn.Conv2d(ndf * 2, 1, kernel_size=12, stride=1, padding=0, bias=use_bias),
+            nn.Conv2d(ndf * 2, ndf * 3, kernel_size=3, stride=1, bias=use_bias),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            norm_layer(ndf * 3),
 
-            # PrintLayer()
+            # PrintLayer(),
+
+            Flatten(),
+
+            # PrintLayer(),
+
+            # Input size of linear = filters * height * width
+            nn.Linear(ndf * 3 * 30 * 30, 500),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+
+            nn.Linear(500, 100),
+            nn.ReLU(),
+            nn.Dropout(0.25),
+
+            nn.Linear(100, 20),
+            nn.ReLU(),
+            
+            nn.Linear(20, 1),
+            nn.ReLU(),
 
             ]
 
@@ -692,49 +725,21 @@ class TimeDiscriminatorHist(nn.Module):
 
             # PrintLayer(),
 
-            nn.Linear(input_size, 100, bias=True),
+            nn.Linear(input_size, 50, bias=True),
             nn.ReLU(),
             # norm_layer(ndf),
 
-            nn.Linear(100, 100, bias=True),
+            nn.Linear(50, 50, bias=True),
             nn.ReLU(),
 
             # PrintLayer(),
 
-            nn.Linear(100, 1, bias=True),
+            nn.Linear(50, 1, bias=True),
             nn.ReLU(),
 
             # PrintLayer()
 
             ]
-
-        # self.net = [
-
-        #     # PrintLayer(),
-
-        #     nn.Conv1d(input_nc, ndf, kernel_size=32, stride=4, padding=0),
-        #     nn.ReLU(),
-        #     norm_layer(ndf),
-
-        #     # PrintLayer(),
-
-        #     nn.Conv1d(ndf, ndf * 2, kernel_size=16, stride=3, padding=0, bias=use_bias),
-        #     norm_layer(ndf * 2),
-        #     nn.ReLU(),
-
-        #     # PrintLayer(),
-
-        #     nn.Conv1d(ndf * 2, ndf, kernel_size=8, stride=3, padding=0, bias=use_bias),
-        #     norm_layer(ndf),
-        #     nn.ReLU(),
-
-        #     # PrintLayer(),
-
-        #     nn.Conv1d(ndf, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
-
-        #     # PrintLayer(),
-
-        #     ]
 
         self.net = nn.Sequential(*self.net)
 
