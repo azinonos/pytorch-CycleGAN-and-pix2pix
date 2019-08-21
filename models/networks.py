@@ -201,7 +201,7 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
     elif netD == 'pixel':     # classify if each pixel is real or fake
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
-    elif netD == 'time':
+    elif netD == 'time_input' or netD == 'time_diffmap':
         net = TimeDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     elif netD == 'time_hist':
         net = TimeDiscriminatorHist(input_nc, ndf, norm_layer=norm_layer, input_size=255)

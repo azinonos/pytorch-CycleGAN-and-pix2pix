@@ -51,13 +51,13 @@ class TimePredictorModel(BaseModel):
         # define network
         # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
         #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-        # opt.netD can be ['basic', 'time', 'time_hist', 'autoenc']
+        # opt.netD can be ['time_input', 'time_diffmap', time_hist', 'time_autoenc']
         self.Dtype = opt.netD
         input_channel_size = opt.input_nc + opt.output_nc
 
         # These type of discriminators handle 1D data, so change
         # the corresponding sizes
-        if opt.netD == 'time':
+        if opt.netD == 'time_diffmap':
             input_channel_size = opt.input_nc
         if opt.netD == 'time_hist' or opt.netD == 'time_autoenc':
             opt.norm = 'batch_1d'
@@ -87,8 +87,8 @@ class TimePredictorModel(BaseModel):
 
         if self.isTrain:
             # define loss functions
-            self.criterionL1 = torch.nn.L1Loss()
-            # self.criterionL2 = torch.nn.MSELoss()
+            # self.criterionL1 = torch.nn.L1Loss()
+            self.criterionL2 = torch.nn.MSELoss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             self.optimizers.append(self.optimizer_D)
@@ -111,10 +111,10 @@ class TimePredictorModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        if self.Dtype == 'basic':
+        if self.Dtype == 'time_input':
             real_AB = torch.cat((self.real_A, self.real_B), 1) # we need to feed both input and output to the network
             self.prediction = self.netD(real_AB)
-        elif self.Dtype == 'time':
+        elif self.Dtype == 'time_diffmap':
             self.prediction = self.netD(self.diff_map)
         elif self.Dtype == 'time_hist':
             self.prediction = self.netD(self.hist_diff)
@@ -125,8 +125,9 @@ class TimePredictorModel(BaseModel):
 
     def backward_D(self):
         # Calculate Loss for D
-        true_time_matrix = torch.ones(self.prediction.shape) * self.true_time
-        self.loss_D_real = self.criterionL1(true_time_matrix, self.prediction.cpu())
+        # Store scalar in a 1x1 matrix so that we can use it for the loss
+        true_time_tensor = torch.ones(self.prediction.shape) * self.true_time
+        self.loss_D_real = self.criterionL2(true_time_tensor, self.prediction.cpu())
         self.loss_D = self.loss_D_real
         self.loss_D.backward()
 
