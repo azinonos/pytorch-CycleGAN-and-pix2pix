@@ -682,7 +682,11 @@ class TimeDiscriminator(nn.Module):
             # PrintLayer(),
 
             # Input size of linear = filters * height * width
-            nn.Linear(ndf * 3 * 30 * 30, 500),
+            nn.Linear(ndf * 3 * 30 * 30, 1500),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+
+            nn.Linear(1500, 500),
             nn.ReLU(),
             nn.Dropout(0.5),
 
