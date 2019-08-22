@@ -94,6 +94,11 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
         else:
             transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
 
+    if opt.rotate:
+        rotate = random.random() > 0.5
+        if rotate:
+            transform_list.append(transforms.RandomRotation(opt.rotate))
+
     if opt.preprocess == 'none':
         transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
 
