@@ -98,7 +98,7 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
     if opt.rotate:
         if params is None:
             transform_list.append(transforms.RandomRotation(opt.rotate))
-        elif params['rotate']:
+        elif params['rotate']:d
             rot = transforms.RandomRotation(opt.rotate)
             transform_list.append(transforms.Lambda(lambda img: rot(img)))
 
