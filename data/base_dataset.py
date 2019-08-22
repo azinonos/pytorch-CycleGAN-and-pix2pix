@@ -74,8 +74,9 @@ def get_params(opt, size):
     y = random.randint(0, np.maximum(0, new_h - opt.crop_size))
 
     flip = random.random() > 0.5
+    rotate = random.random() > 0.5
 
-    return {'crop_pos': (x, y), 'flip': flip}
+    return {'crop_pos': (x, y), 'flip': flip, 'rotate': rotate}
 
 
 def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True):
@@ -95,9 +96,11 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
             transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
 
     if opt.rotate:
-        rotate = random.random() > 0.5
-        if rotate:
+        if params is None:
             transform_list.append(transforms.RandomRotation(opt.rotate))
+        elif params['rotate']:
+            rot = transforms.RandomRotation(opt.rotate)
+            transform_list.append(transforms.Lambda(lambda img: rot(img)))
 
     if opt.preprocess == 'none':
         transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
