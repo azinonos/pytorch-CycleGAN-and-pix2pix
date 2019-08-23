@@ -1,6 +1,8 @@
 import torch
 from .base_model import BaseModel
 from . import networks
+from copy import deepcopy
+from models import create_model
 
 
 class Pix2PixBrainModel(BaseModel):
@@ -33,7 +35,9 @@ class Pix2PixBrainModel(BaseModel):
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-            parser.add_argument('--lambda_L2', type=float, default=0.5, help='weighted for tumour tissue over rest of brain. Range [0,1]')
+            parser.add_argument('--lambda_L2', type=float, default=0.5, help='weight for tumour tissue over rest of brain. Range [0,1]')
+            parser.add_argument('--TPN', action='store_true', help='Use the Time Prediction Network (TPN) in the loss')
+            parser.add_argument('--gamma', type=float, default=50.0, help='weight for time loss, when TPN is set to True')
 
         return parser
 
@@ -53,6 +57,8 @@ class Pix2PixBrainModel(BaseModel):
             self.model_names = ['G', 'D']
         else:  # during test time, only load G
             self.model_names = ['G']
+
+        self.TPN_enabled = opt.TPN
         # define networks (both generator and discriminator)
         self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                       not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -60,6 +66,22 @@ class Pix2PixBrainModel(BaseModel):
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
             self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+
+            if self.TPN_enabled:
+                self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
+                # Setup TPN if set to True
+                print("\nSetting up TPN\n")
+                opt_TPN = deepcopy(opt) # copy train options and change later
+                opt_TPN.model = 'time_predictor'
+                opt_TPN.name = 'time_prediction_10'
+                opt_TPN.netD = 'time_input'
+                opt_TPN.ndf = 16
+                # hard-code some parameters for test
+                opt_TPN.display_id = -1   # no visdom display;
+                opt_TPN.isTrain = False
+                print("Options TPN: {}\n\n".format(opt_TPN))
+                self.TPN = create_model(opt_TPN)      # create a model given opt_TPN.model and other options
+                self.TPN.setup(opt_TPN)               # regular setup: load
 
         if self.isTrain:
             # define loss functions
@@ -86,10 +108,17 @@ class Pix2PixBrainModel(BaseModel):
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
+        self.true_time = input['time_period'][0]
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.fake_B = self.netG(self.real_A)  # G(A)
+
+        if self.TPN_enabled:
+            self.TPN.real_A = self.real_A
+            self.TPN.real_B = self.real_B
+            self.TPN.forward()
+            self.fake_time = self.TPN.prediction
 
     def backward_D(self):
         """Calculate GAN loss for the discriminator"""
@@ -113,37 +142,28 @@ class Pix2PixBrainModel(BaseModel):
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
         # Second, G(A) = B
         ### ORIGINAL
-        # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
+        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
         ### END ORIGINAL
 
-        ### ATTEMPT 1
+        # Weighted L1 Loss
         # fake_B_tumour = self.fake_B.clone().detach()
         # real_B_tumour = self.real_B.clone().detach()
         # fake_B_tumour[fake_B_tumour < 0.5] = 0
         # real_B_tumour[fake_B_tumour < 0.5] = 0
-        # self.loss_G_L1 = self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L1
-        ### END ATTEMPT 1
+        # self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
+        #                  self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
 
-        ### ATTEMPT 2
-        # fake_B_tumour = self.fake_B.clone().detach()
-        # real_B_tumour = self.real_B.clone().detach()
-        # fake_B_tumour[fake_B_tumour < 0.5] = 0
-        # real_B_tumour[fake_B_tumour < 0.5] = 0
-        # self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1 + \
-        #                  self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L1 * 2
-        ### END ATTEMPT 2
 
-        ### ATTEMPT 3
-        fake_B_tumour = self.fake_B.clone().detach()
-        real_B_tumour = self.real_B.clone().detach()
-        fake_B_tumour[fake_B_tumour < 0.5] = 0
-        real_B_tumour[fake_B_tumour < 0.5] = 0
-        self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
-                         self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
-        ### END ATTEMPT 3
+        # TPN Loss
+        if self.TPN_enabled:
+            true_time_tensor = torch.ones(self.fake_time.shape) * self.true_time
+            self.loss_G_TPN = self.criterionL1(true_time_tensor, self.fake_time) * self.opt.gamma
+            # combine loss and calculate gradients
+            self.loss_G = self.loss_G_GAN + self.loss_G_L1 + self.loss_G_TPN
+        else:
+            # combine loss and calculate gradients
+            self.loss_G = self.loss_G_GAN + self.loss_G_L1
 
-        # combine loss and calculate gradients
-        self.loss_G = self.loss_G_GAN + self.loss_G_L1
         self.loss_G.backward()
 
     def optimize_parameters(self):
@@ -156,5 +176,5 @@ class Pix2PixBrainModel(BaseModel):
         # update G
         self.set_requires_grad(self.netD, False)  # D requires no gradients when optimizing G
         self.optimizer_G.zero_grad()        # set G's gradients to zero
-        self.backward_G()                   # calculate graidents for G
+        self.backward_G()                   # calculate gradients for G
         self.optimizer_G.step()             # udpate G's weights
