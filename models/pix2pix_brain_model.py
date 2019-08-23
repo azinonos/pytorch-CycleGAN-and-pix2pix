@@ -107,8 +107,8 @@ class Pix2PixBrainModel(BaseModel):
         AtoB = self.opt.direction == 'AtoB'
         self.real_A = input['A' if AtoB else 'B'].to(self.device)
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
+        self.true_time = input['time_period'][0].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
-        self.true_time = input['time_period'][0]
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
