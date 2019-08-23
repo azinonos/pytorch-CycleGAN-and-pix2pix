@@ -159,7 +159,6 @@ class Pix2PixBrainModel(BaseModel):
         # TPN Loss
         if self.TPN_enabled:
             true_time_tensor = torch.ones(self.fake_time.shape) * self.true_time
-            print("Prediction Time: {}, True Time: {}".format(self.fake_time.item(), true_time_tensor.item()))
             self.loss_G_TPN = self.criterionL1(true_time_tensor, self.fake_time.cpu()) * self.opt.gamma
             # combine loss and calculate gradients
             self.loss_G = self.loss_G_GAN + self.loss_G_L1 + self.loss_G_TPN.to(self.device)
