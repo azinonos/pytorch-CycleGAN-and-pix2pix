@@ -70,9 +70,15 @@ class Pix2PixBrainModel(BaseModel):
             if self.opt.TPN:
                 self.TPN_enabled = True
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
+                
                 # Store final gamma value and then set it to 0
                 self.final_gamma = opt.gamma
                 opt.gamma = 0
+
+                # Initiliaze m and c and None
+                self.update_m = None
+                self.update_c = None
+
                 # Setup TPN if set to True
                 print("\nSetting up TPN\n")
                 opt_TPN = deepcopy(opt) # copy train options and change later
