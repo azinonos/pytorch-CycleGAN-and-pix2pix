@@ -70,7 +70,7 @@ class Pix2PixBrainModel(BaseModel):
             if self.opt.TPN:
                 self.TPN_enabled = True
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
-                
+
                 # Store final gamma value and then set it to 0
                 self.final_gamma = opt.gamma
                 opt.gamma = 0
@@ -208,4 +208,4 @@ class Pix2PixBrainModel(BaseModel):
         else: # > end_epoch
             self.opt_gamma = self.final_gamma
 
-        print('gamma = %.7f' % self.opt_gamma)
+        print('gamma = %.7f' % self.opt.gamma)
