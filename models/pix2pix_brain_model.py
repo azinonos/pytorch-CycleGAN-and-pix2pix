@@ -117,8 +117,9 @@ class Pix2PixBrainModel(BaseModel):
         self.fake_B = self.netG(self.real_A)  # G(A)
 
         if self.TPN_enabled:
+            # Predict the time between real image A and generated image B
             self.TPN.real_A = self.real_A
-            self.TPN.real_B = self.real_B
+            self.TPN.real_B = self.fake_B
             self.TPN.forward()
             self.fake_time = self.TPN.prediction
 
