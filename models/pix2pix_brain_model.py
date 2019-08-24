@@ -37,8 +37,7 @@ class Pix2PixBrainModel(BaseModel):
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
             parser.add_argument('--lambda_L2', type=float, default=0.5, help='weight for tumour tissue over rest of brain. Range [0,1]')
             parser.add_argument('--TPN', action='store_true', help='Use the Time Prediction Network (TPN) in the loss')
-            parser.add_argument('--gamma', type=float, default=50.0, help='weight for time loss, when TPN is set to True')
-
+            parser.add_argument('--gamma', type=float, default=100.0, help='weight for time loss, when TPN is set to True')
         return parser
 
     def __init__(self, opt):
@@ -71,6 +70,9 @@ class Pix2PixBrainModel(BaseModel):
             if self.opt.TPN:
                 self.TPN_enabled = True
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
+                # Store final gamma value and then set it to 0
+                self.final_gamma = opt.gamma
+                opt.gamma = 0
                 # Setup TPN if set to True
                 print("\nSetting up TPN\n")
                 opt_TPN = deepcopy(opt) # copy train options and change later
@@ -181,3 +183,23 @@ class Pix2PixBrainModel(BaseModel):
         self.optimizer_G.zero_grad()        # set G's gradients to zero
         self.backward_G()                   # calculate gradients for G
         self.optimizer_G.step()             # udpate G's weights
+
+    def update_current_gamma(self, epoch):
+        ''' Update gamma value for TPN from opt, depending on the epoch '''
+        start_epoch = 50
+        end_epoch = 100
+
+        # Values should be None only at the first call
+        if self.update_m == None and self.update_c == None:
+            self.update_m = self.final_gamma / (end_epoch - start_epoch)
+            self.update_c = -self.update_m * start_epoch
+
+        if epoch < start_epoch:
+            self.opt.gamma = 0
+        elif start_epoch < epoch < end_epoch:
+            # Linearly update gamma
+            self.opt.gamma = self.update_m * epoch + self.update_c
+        else: # > end_epoch
+            self.opt_gamma = self.final_gamma
+
+        print('gamma = %.7f' % self.opt_gamma)
