@@ -192,8 +192,8 @@ class Pix2PixBrainModel(BaseModel):
 
     def update_current_gamma(self, epoch):
         ''' Update gamma value for TPN from opt, depending on the epoch '''
-        start_epoch = 50
-        end_epoch = 100
+        start_epoch = 100
+        end_epoch = 150
 
         # Values should be None only at the first call
         if self.update_m == None and self.update_c == None:
@@ -205,7 +205,7 @@ class Pix2PixBrainModel(BaseModel):
         elif start_epoch < epoch < end_epoch:
             # Linearly update gamma
             self.opt.gamma = self.update_m * epoch + self.update_c
-        else: # > end_epoch
+        else: # epoch > end_epoch
             self.opt_gamma = self.final_gamma
 
         print('gamma = %.7f' % self.opt.gamma)
