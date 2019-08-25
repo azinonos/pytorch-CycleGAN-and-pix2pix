@@ -72,7 +72,7 @@ class Pix2PixBrainModel(BaseModel):
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
 
                 # Store final gamma value and then set it to 0
-                self.final_gamma = opt.gamma
+                self.final_gamma = deepcopy(opt.gamma)
                 opt.gamma = 0
 
                 # Initiliaze m and c and None
