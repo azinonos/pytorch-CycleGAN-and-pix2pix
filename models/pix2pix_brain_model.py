@@ -62,7 +62,11 @@ class Pix2PixBrainModel(BaseModel):
         self.TPN_enabled = self.opt.TPN
 
         # define networks (both generator and discriminator)
-        self.netG = networks.define_G(opt.input_nc + 1, opt.output_nc, opt.ngf, opt.netG, opt.norm,
+        if self.opt.TPN:
+            self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, 'unet_256_TPN', opt.norm,
+                                      not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        else:
+            self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                       not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
@@ -124,9 +128,10 @@ class Pix2PixBrainModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         if self.TPN_enabled:
-            self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
-            img_with_time = torch.cat((self.img_time_tensor.to(self.device), self.real_A), 1) 
-            self.fake_B = self.netG(img_with_time)
+            # self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
+            # img_with_time = torch.cat((self.img_time_tensor.to(self.device), self.real_A), 1) 
+            # self.fake_B = self.netG(img_with_time)
+            self.fake_B = self.netG(self.real_A, self.true_time) # Pass the image and time
 
             if self.isTrain:
                 # Predict the time between real image A and generated image B
