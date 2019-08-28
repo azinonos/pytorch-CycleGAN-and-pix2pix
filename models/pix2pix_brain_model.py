@@ -59,8 +59,9 @@ class Pix2PixBrainModel(BaseModel):
 
         # False during testing or if training andf not enabled
         self.TPN_enabled = False
+
         # define networks (both generator and discriminator)
-        self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
+        self.netG = networks.define_G(opt.input_nc + 1, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                       not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
@@ -122,14 +123,17 @@ class Pix2PixBrainModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        self.fake_B = self.netG(self.real_A)  # G(A)
-
         if self.TPN_enabled:
+            self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
+            img_with_time = torch.cat((self.img_time_tensor, self.real_A), 1) 
+            self.fake_B = self.netG(img_with_time)
             # Predict the time between real image A and generated image B
             self.TPN.real_A = self.real_A
             self.TPN.real_B = self.fake_B
             self.TPN.forward()
             self.fake_time = self.TPN.prediction
+        else:
+            self.fake_B = self.netG(self.real_A)  # G(A)
 
     def backward_D(self):
         """Calculate GAN loss for the discriminator"""
