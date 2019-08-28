@@ -124,7 +124,7 @@ class Pix2PixBrainModel(BaseModel):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         if self.TPN_enabled:
             self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
-            img_with_time = torch.cat((self.img_time_tensor, self.real_A), 1) 
+            img_with_time = torch.cat((self.img_time_tensor.to(self.device), self.real_A), 1) 
             self.fake_B = self.netG(img_with_time)
 
             if self.isTrain:
