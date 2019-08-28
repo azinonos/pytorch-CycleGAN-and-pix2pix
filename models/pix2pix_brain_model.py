@@ -32,11 +32,12 @@ class Pix2PixBrainModel(BaseModel):
         """
         # changing the default values to match the pix2pix paper (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(norm='batch', netG='unet_256', dataset_mode='aligned')
+        parser.add_argument('--TPN', action='store_true', help='Use the Time Prediction Network (TPN) in the loss')
+
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
             parser.add_argument('--lambda_L2', type=float, default=0.5, help='weight for tumour tissue over rest of brain. Range [0,1]')
-            parser.add_argument('--TPN', action='store_true', help='Use the Time Prediction Network (TPN) in the loss')
             parser.add_argument('--gamma', type=float, default=100.0, help='weight for time loss, when TPN is set to True')
         return parser
 
