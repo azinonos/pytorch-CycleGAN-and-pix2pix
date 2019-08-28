@@ -57,8 +57,8 @@ class Pix2PixBrainModel(BaseModel):
         else:  # during test time, only load G
             self.model_names = ['G']
 
-        # False during testing or if training andf not enabled
-        self.TPN_enabled = False
+        # Set TPN_enabled to the opt.TPN value
+        self.TPN_enabled = self.opt.TPN
 
         # define networks (both generator and discriminator)
         self.netG = networks.define_G(opt.input_nc + 1, opt.output_nc, opt.ngf, opt.netG, opt.norm,
@@ -69,7 +69,6 @@ class Pix2PixBrainModel(BaseModel):
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
             if self.opt.TPN:
-                self.TPN_enabled = True
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
 
                 # Store final gamma value and then set it to 0
@@ -127,11 +126,13 @@ class Pix2PixBrainModel(BaseModel):
             self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
             img_with_time = torch.cat((self.img_time_tensor, self.real_A), 1) 
             self.fake_B = self.netG(img_with_time)
-            # Predict the time between real image A and generated image B
-            self.TPN.real_A = self.real_A
-            self.TPN.real_B = self.fake_B
-            self.TPN.forward()
-            self.fake_time = self.TPN.prediction
+
+            if self.isTrain:
+                # Predict the time between real image A and generated image B
+                self.TPN.real_A = self.real_A
+                self.TPN.real_B = self.fake_B
+                self.TPN.forward()
+                self.fake_time = self.TPN.prediction
         else:
             self.fake_B = self.netG(self.real_A)  # G(A)
 
