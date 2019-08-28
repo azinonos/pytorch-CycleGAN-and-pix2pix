@@ -653,17 +653,17 @@ class UnetSkipConnectionBlockTPN(nn.Module):
         if self.outermost:
             x1 = self.down(x)
             x2 = self.submodule(x1, time)
-            x2_and_time = torch.cat([torch.ones((1, 1, x2.shape[2], x2.shape[3])) * time, x2], 1)
+            x2_and_time = torch.cat([torch.ones((1, 1, x2.shape[2], x2.shape[3])) * time.item(), x2], 1)
             return self.up(x2_and_time)
         elif self.innermost:
             x1 = self.down(x)
-            x1_and_time = torch.cat([torch.ones((1, 1, x1.shape[2], x1.shape[3])) * time, x1], 1)
+            x1_and_time = torch.cat([torch.ones((1, 1, x1.shape[2], x1.shape[3])) * time.item(), x1], 1)
             x2 = self.up(x1_and_time)
             return torch.cat([x2, x], 1)
         else:
             x1 = self.down(x)
             x2 = self.submodule(x1, time)
-            x2_and_time = torch.cat([torch.ones((1, 1, x2.shape[2], x2.shape[3])) * time, x2], 1)
+            x2_and_time = torch.cat([torch.ones((1, 1, x2.shape[2], x2.shape[3])) * time.item(), x2], 1)
             return torch.cat([self.up(x2_and_time), x], 1)
 
 class NLayerDiscriminator(nn.Module):

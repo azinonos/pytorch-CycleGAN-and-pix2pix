@@ -131,7 +131,7 @@ class Pix2PixBrainModel(BaseModel):
             # self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
             # img_with_time = torch.cat((self.img_time_tensor.to(self.device), self.real_A), 1) 
             # self.fake_B = self.netG(img_with_time)
-            self.fake_B = self.netG(self.real_A, self.true_time) # Pass the image and time
+            self.fake_B = self.netG(self.real_A, torch.ones((1,1)) * self.true_time) # Pass the image and time
 
             if self.isTrain:
                 # Predict the time between real image A and generated image B
