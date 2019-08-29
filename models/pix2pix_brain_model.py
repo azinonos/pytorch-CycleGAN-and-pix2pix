@@ -217,6 +217,6 @@ class Pix2PixBrainModel(BaseModel):
             # Linearly update gamma
             self.opt.gamma = self.update_m * epoch + self.update_c
         else: # epoch > end_epoch
-            self.opt_gamma = self.final_gamma
+            self.opt.gamma = self.final_gamma
 
         print('gamma = %.7f' % self.opt.gamma)
