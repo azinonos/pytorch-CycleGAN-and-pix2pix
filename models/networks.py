@@ -608,8 +608,6 @@ class UnetSkipConnectionBlockTPN(nn.Module):
         if input_nc is None:
             input_nc = outer_nc
 
-        input_nc += 1 # Add one for time layer
-
         downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4,
                              stride=2, padding=1, bias=use_bias)
         downrelu = nn.LeakyReLU(0.2, True)
@@ -653,20 +651,17 @@ class UnetSkipConnectionBlockTPN(nn.Module):
         # print(x.size())
 
         if self.outermost:
-            x_and_time = torch.cat([time.expand(1, 1, x.shape[2], x.shape[3]), x], 1)
-            x1 = self.down(x_and_time)
+            x1 = self.down(x)
             x2 = self.submodule(x1, time)
             x2_and_time = torch.cat([time.expand(1, 1, x2.shape[2], x2.shape[3]), x2], 1)
             return self.up(x2_and_time)
         elif self.innermost:
-            x_and_time = torch.cat([time.expand(1, 1, x.shape[2], x.shape[3]), x], 1)
-            x1 = self.down(x_and_time)
+            x1 = self.down(x)
             x1_and_time = torch.cat([time.expand(1, 1, x1.shape[2], x1.shape[3]), x1], 1)
             x2 = self.up(x1_and_time)
             return torch.cat([x2, x], 1)
         else:
-            x_and_time = torch.cat([time.expand(1, 1, x.shape[2], x.shape[3]), x], 1)
-            x1 = self.down(x_and_time)
+            x1 = self.down(x)
             x2 = self.submodule(x1, time)
             x2_and_time = torch.cat([time.expand(1, 1, x2.shape[2], x2.shape[3]), x2], 1)
             return torch.cat([self.up(x2_and_time), x], 1)
