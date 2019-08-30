@@ -616,7 +616,7 @@ class UnetSkipConnectionBlockTPN(nn.Module):
         upnorm = norm_layer(outer_nc)
 
         if outermost:
-            upconv = nn.ConvTranspose2d(inner_nc * 2 + 1, outer_nc,
+            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
                                         kernel_size=4, stride=2,
                                         padding=1)
             down = [downconv]
@@ -653,8 +653,8 @@ class UnetSkipConnectionBlockTPN(nn.Module):
         if self.outermost:
             x1 = self.down(x)
             x2 = self.submodule(x1, time)
-            x2_and_time = torch.cat([time.expand(1, 1, x2.shape[2], x2.shape[3]), x2], 1)
-            return self.up(x2_and_time)
+            # x2_and_time = torch.cat([time.expand(1, 1, x2.shape[2], x2.shape[3]), x2], 1)
+            return self.up(x2)
         elif self.innermost:
             x1 = self.down(x)
             x1_and_time = torch.cat([time.expand(1, 1, x1.shape[2], x1.shape[3]), x1], 1)
