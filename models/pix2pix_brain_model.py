@@ -148,7 +148,7 @@ class Pix2PixBrainModel(BaseModel):
         """Calculate GAN loss for the discriminator"""
         # Fake; stop backprop to the generator by detaching fake_B
         if self.TPN_enabled:
-            self.true_time_layer = torch.ones(self.real_A.shape) * self.true_time
+            self.true_time_layer = (torch.ones(self.real_A.shape) * self.true_time).to(self.device)
             fake_AB = torch.cat((self.true_time_layer, self.real_A, self.fake_B), 1)  # we use conditional GANs with TPN; we need to feed both time, input and output to the discriminator
         else:
             fake_AB = torch.cat((self.real_A, self.fake_B), 1)  # we use conditional GANs; we need to feed both input and output to the discriminator
