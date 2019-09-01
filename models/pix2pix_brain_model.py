@@ -156,7 +156,10 @@ class Pix2PixBrainModel(BaseModel):
         pred_fake = self.netD(fake_AB.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
         # Real
-        real_AB = torch.cat((self.true_time_layer, self.real_A, self.real_B), 1)
+        if self.TPN_enabled:
+            real_AB = torch.cat((self.true_time_layer, self.real_A, self.real_B), 1)
+        else:
+            real_AB = torch.cat((self.real_A, self.real_B), 1)
         pred_real = self.netD(real_AB)
         self.loss_D_real = self.criterionGAN(pred_real, True)
         # combine loss and calculate gradients
