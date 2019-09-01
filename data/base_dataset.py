@@ -103,7 +103,7 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
             transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
 
     # If rotation is enabled above, use the random rotation object to apply to our images
-    if params['rotation']:
+    if params is not None and params['rotation']:
         transform_list.append(transforms.Lambda(lambda img: params['rotation'](img)))
 
     if opt.preprocess == 'none':
