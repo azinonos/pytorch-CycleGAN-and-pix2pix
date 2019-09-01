@@ -37,7 +37,7 @@ class Pix2PixBrainModel(BaseModel):
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-            parser.add_argument('--lambda_L2', type=float, default=0.5, help='weight for tumour tissue over rest of brain. Range [0,1]')
+            parser.add_argument('--lambda_L2', type=float, default=0.0, help='weight for tumour tissue over rest of brain. Range [0,1]')
             parser.add_argument('--gamma', type=float, default=100.0, help='weight for time loss, when TPN is set to True')
         return parser
 
@@ -172,19 +172,19 @@ class Pix2PixBrainModel(BaseModel):
             fake_AB = torch.cat((self.real_A, self.fake_B), 1)
         pred_fake = self.netD(fake_AB)
         self.loss_G_GAN = self.criterionGAN(pred_fake, True)
+        
         # Second, G(A) = B
-        ### ORIGINAL
-        self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
-        ### END ORIGINAL
-
         # Weighted L1 Loss
-        # fake_B_tumour = self.fake_B.clone().detach()
-        # real_B_tumour = self.real_B.clone().detach()
-        # fake_B_tumour[fake_B_tumour < 0.5] = 0
-        # real_B_tumour[fake_B_tumour < 0.5] = 0
-        # self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
-        #                  self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
-
+        if lambda_L2 > 0:
+            fake_B_tumour = self.fake_B.clone().detach()
+            real_B_tumour = self.real_B.clone().detach()
+            fake_B_tumour[fake_B_tumour < 0.5] = 0
+            real_B_tumour[fake_B_tumour < 0.5] = 0
+            self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
+                             self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
+        else:
+            ### ORIGINAL
+            self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
 
         # TPN Loss
         if self.TPN_enabled:
