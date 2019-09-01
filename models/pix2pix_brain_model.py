@@ -178,7 +178,7 @@ class Pix2PixBrainModel(BaseModel):
         
         # Second, G(A) = B
         # Weighted L1 Loss
-        if lambda_L2 > 0:
+        if self.opt.lambda_L2 > 0:
             fake_B_tumour = self.fake_B.clone().detach()
             real_B_tumour = self.real_B.clone().detach()
             fake_B_tumour[fake_B_tumour < 0.5] = 0
