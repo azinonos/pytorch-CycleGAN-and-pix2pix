@@ -75,5 +75,8 @@ if __name__ == '__main__':
 
         print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
         model.update_learning_rate()                     # update learning rates at the end of every epoch.
+        
+        # If TPN is enabled, call the gamma scheduler to update
+        # the hyperparameter value at every epoch
         if opt.model == 'pix2pix_brain' and opt.TPN:
             model.update_current_gamma(epoch)

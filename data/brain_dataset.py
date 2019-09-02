@@ -6,9 +6,10 @@ import numpy as np
 
 
 class BrainDataset(BaseDataset):
-    """A dataset class for paired image dataset.
+    """A dataset class for paired image dataset of brain slices.
 
     It assumes that the directory '/path/to/data/train' contains image pairs in the form of {A,B}.
+    It also assumes that the files are of the format NNNN_Nw.ext eg: 0000_25w.png, 0001_8w.jpg
     During test time, you need to prepare a directory '/path/to/data/test'.
     """
 
@@ -34,6 +35,9 @@ class BrainDataset(BaseDataset):
         Returns a dictionary that contains A, B, A_paths and B_paths
             A (tensor) - - an image in the input domain
             B (tensor) - - its corresponding image in the target domain
+            diff_map (tensor) - - the difference map resulting from A - B
+            hist_diff (tensor) - - the difference of histograms of hist(A) - hist(B)
+            time_period (int) - - the time period in weeks between A and B, read from the filename
             A_paths (str) - - image paths
             B_paths (str) - - image paths (same as A_paths)
         """
@@ -63,7 +67,7 @@ class BrainDataset(BaseDataset):
         B = B_transform(B)
         diff_map = diff_map_transform(diff_map)
 
-        # Extract Time Period
+        # Extract Time Period from filename
         time_period = int(AB_path.split('_')[-1].split('.')[0][:-1])
 
         return {'A': A, 'B': B, 'diff_map': diff_map, 'hist_diff': hist_diff, 'time_period': time_period, 'A_paths': AB_path, 'B_paths': AB_path}

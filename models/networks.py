@@ -650,10 +650,11 @@ class UnetSkipConnectionBlockTPN(nn.Module):
 
         # print(x.size())
 
+        # Concatenate time layer on every upconvolution
+        # except for theoutermost layer
         if self.outermost:
             x1 = self.down(x)
             x2 = self.submodule(x1, time)
-            # x2_and_time = torch.cat([time.expand(1, 1, x2.shape[2], x2.shape[3]), x2], 1)
             return self.up(x2)
         elif self.innermost:
             x1 = self.down(x)
@@ -755,10 +756,10 @@ class Flatten(nn.Module):
         return self.flatten(x)
 
 class TimeDiscriminator(nn.Module):
-    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+    """Defines a TimeDiscriminator"""
 
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
-        """Construct a 1x1 PatchGAN discriminator
+        """Construct a TimeDiscriminator
 
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -824,10 +825,10 @@ class TimeDiscriminator(nn.Module):
         return self.net(input)
 
 class TimeDiscriminatorHist(nn.Module):
-    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+    """Defines a TimeDiscriminatorHist"""
 
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=255):
-        """Construct a 1x1 PatchGAN discriminator
+        """Construct a TimeDiscriminatorHist
 
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -870,7 +871,7 @@ class TimeDiscriminatorHist(nn.Module):
 class TimeDiscriminatorAutoEnc(nn.Module):
 
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm1d, input_size=256, hidden_size=30):
-        """Construct a 1x1 PatchGAN discriminator
+        """Construct a TimeDiscriminatorAutoEnc
 
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -910,10 +911,10 @@ class TimeDiscriminatorAutoEnc(nn.Module):
         return self.net(input)
 
 class AutoEncoderNet(nn.Module):
-    """Defines a 1x1 PatchGAN discriminator (pixelGAN)"""
+    """Defines an AutoEncoder"""
 
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d, hidden_size=128):
-        """Construct a 1x1 PatchGAN discriminator
+        """Construct an AutoEncoder
 
         Parameters:
             input_nc (int)  -- the number of channels in input images
@@ -953,35 +954,21 @@ class AutoEncoderNet(nn.Module):
 
     def encode(self, x):
 
-        # print("ENCODER")
-        # print("Input Shape:", x.shape)
         x = F.relu(self.bn1(self.pool1(self.conv1(x))))
-        # print("Step 1 Shape:", x.shape)
         x = F.relu(self.bn2(self.pool2(self.conv2(x))))
-        # print("Step 2 Shape:", x.shape)
         x = F.relu(self.bn3(self.pool3(self.conv3(x))))
-        # print("Step 3 Shape:", x.shape)
         x = x.view(x.shape[0], -1)
-        # print("Step 4 Shape:", x.shape)
         x = F.relu(self.fc1(x))
-        # print("Step 5 Shape:", x.shape)
 
         return x
 
     def decode(self, z):
 
-        # print("DECODER")
-        # print("Input Shape:", z.shape)
         z = F.relu(self.bn5(self.fc2(z)))
-        # print("Step 1 Shape:", z.shape)
         z = z.view(-1, self.ndf*3, 32, 32)
-        # print("Step 2 Shape:", z.shape)
         z = F.relu(self.bn7(self.deconv2(z)))
-        # print("Step 3 Shape:", z.shape)
         z = F.relu(self.bn8(self.deconv3(z)))
-        # print("Step 4 Shape:", z.shape)
         z = torch.tanh(self.deconv4(z))
-        # print("Step 5 Shape:", z.shape)
 
         return z  
 
@@ -1001,6 +988,6 @@ class PrintLayer(nn.Module):
         super(PrintLayer, self).__init__()
     
     def forward(self, x):
-        # Do your print / debug stuff here
+        # Print / debug goes here
         print("Input Size:", x.shape)
         return x

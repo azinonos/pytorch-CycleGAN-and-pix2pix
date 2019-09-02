@@ -4,10 +4,9 @@ from . import networks
 
 
 class AutoEncoderModel(BaseModel):
-    """ This class implements the time_predictor model, for learning the time difference between two given MRI images.
+    """ This class implements an autoencoder model, for learning the encoding/decoding of an image
 
     The model training requires '--dataset_mode aligned' dataset.
-    By default, it uses a '--netD basic' discriminator (PatchGAN),
 
     """
     @staticmethod
@@ -21,19 +20,14 @@ class AutoEncoderModel(BaseModel):
         Returns:
             the modified parser.
 
-        The training objective is: M(True_Time, Predicted_Time), where M is a Distance metric
-        By default, we use UNet with batchnorm, and aligned datasets.
+        The training objective is: L1(Input, Output)
         """
         # changing the default values to match the pix2pix paper (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(norm='batch', dataset_mode='aligned')
-        if is_train:
-            parser.set_defaults(pool_size=0, gan_mode='vanilla')
-            parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
-
         return parser
 
     def __init__(self, opt):
-        """Initialize the time_predictor class.
+        """Initialize the autoencoder class.
 
         Parameters:
             opt (Option class)-- stores all the experiment flags; needs to be a subclass of BaseOptions
@@ -46,8 +40,6 @@ class AutoEncoderModel(BaseModel):
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['AE']
         # define network
-        # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
-        #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netAE = networks.define_D(opt.input_nc, opt.ndf, 'autoenc',
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
@@ -71,7 +63,6 @@ class AutoEncoderModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.diff_map = input['diff_map'].to(self.device)
         self.hist_diff = input['hist_diff'].float().to(self.device)
-        # self.true_time = input['time_period'][0]
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
     def forward(self):
@@ -79,19 +70,19 @@ class AutoEncoderModel(BaseModel):
         self.recreated_diff_map = self.netAE(self.diff_map)
 
     def forward_getVector(self):
-        ''' Run forward pass but only on encoder, to to return latent vector '''
+        ''' Run forward pass but only on encoder, to return latent vector '''
         with torch.no_grad():
             latent_vector = self.netAE.forward_vectorOnly(self.diff_map)
         return latent_vector
 
     def backward_AE(self):
-        # Calculate Loss for D
+        # Calculate Loss for AE
         self.loss_AE_real = self.criterionL1(self.diff_map, self.recreated_diff_map)
         self.loss_AE = self.loss_AE_real
         self.loss_AE.backward()
 
     def optimize_parameters(self):
-        self.forward()                   # compute fake images: G(A)
+        self.forward()
         # update AE
         self.set_requires_grad(self.netAE, True)  # enable backprop for AE
         self.optimizer_AE.zero_grad()     # set AE's gradients to zero

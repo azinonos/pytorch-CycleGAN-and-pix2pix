@@ -1,18 +1,13 @@
-"""General-purpose training script for image-to-image translation.
+"""Training script for Time Predictor Network (TPN).
+This is an altered version of the original train.py script
 
-This script works for various models (with option '--model': e.g., pix2pix, cyclegan, colorization) and
-different datasets (with option '--dataset_mode': e.g., aligned, unaligned, single, colorization).
-You need to specify the dataset ('--dataroot'), experiment name ('--name'), and model ('--model').
-
-It first creates model, dataset, and visualizer given the option.
-It then does standard network training. During the training, it also visualize/save the images, print/save the loss plot, and save models.
+It first creates model, dataset.
+It then does standard network training. During the training, it print/save the loss plot, and save models.
 The script supports continue/resume training. Use '--continue_train' to resume your previous training.
 
 Example:
-    Train a CycleGAN model:
-        python train.py --dataroot ./datasets/maps --name maps_cyclegan --model cycle_gan
-    Train a pix2pix model:
-        python train.py --dataroot ./datasets/facades --name facades_pix2pix --model pix2pix --direction BtoA
+    Train a TimePredictorNetwork Model:
+        python train_time.py --dataroot #DATASET_LOCATION# --name #EXP_NAME# --model time_predictor --netD time_input --direction AtoB
 
 See options/base_options.py and options/train_options.py for more training options.
 See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/tips.md
@@ -27,9 +22,14 @@ from test_time import predict_time
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()   # get training options
+
+    # Create additional train and val datasets to check
+    # accuracy at every epoch
     test_opt_train = TrainOptions().parse() 
     test_opt_val = TrainOptions().parse() 
     NUM_TEST = 200
+    test_opt_train.isTrain = False
+    test_opt_val.isTrain = False
     test_opt_train.num_test = NUM_TEST
     test_opt_val.num_test = NUM_TEST
     test_opt_val.phase = 'val'

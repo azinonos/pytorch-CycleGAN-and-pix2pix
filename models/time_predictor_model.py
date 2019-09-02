@@ -9,8 +9,8 @@ import numpy as np
 class TimePredictorModel(BaseModel):
     """ This class implements the time_predictor model, for learning the time difference between two given MRI images.
 
-    The model training requires '--dataset_mode aligned' dataset.
-    By default, it uses a '--netD basic' discriminator (PatchGAN),
+    The model training requires '--dataset_mode brain' dataset.
+    By default, it uses a '--netD time_input' discriminator,
 
     """
     @staticmethod
@@ -49,8 +49,6 @@ class TimePredictorModel(BaseModel):
         # specify the models you want to save to the disk. The training/test scripts will call <BaseModel.save_networks> and <BaseModel.load_networks>
         self.model_names = ['D']
         # define network
-        # self.netD = networks.define_D(opt.input_nc + opt.output_nc, opt.ndf, opt.netD,
-        #                                   opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
         # opt.netD can be ['time_input', 'time_diffmap', time_hist', 'time_autoenc']
         self.Dtype = opt.netD
         input_channel_size = opt.input_nc + opt.output_nc
@@ -68,14 +66,11 @@ class TimePredictorModel(BaseModel):
             print("\nSetting up AutoEncoder\n")
             opt_autoenc = deepcopy(opt) # copy train options and change later
             opt_autoenc.model = 'auto_encoder'
-            opt_autoenc.name = 'autoenc_02'
+            opt_autoenc.name = 'autoenc_02' # change to trained autoencoder model name
             opt_autoenc.netD = 'autoenc'
             opt_autoenc.norm = 'batch'
             # hard-code some parameters for test
             opt_autoenc.num_threads = 0   # test code only supports num_threads = 1
-            # opt_autoenc.batch_size = 1    # test code only supports batch_size = 1
-            # opt_autoenc.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-            # opt_autoenc.no_flip = True    # no flip; comment this line if results on flipped images are needed.
             opt_autoenc.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
             opt_autoenc.isTrain = False
             print("Options Autoenc: {}\n\n".format(opt_autoenc))
@@ -87,7 +82,6 @@ class TimePredictorModel(BaseModel):
 
         if self.isTrain:
             # define loss functions
-            # self.criterionL1 = torch.nn.L1Loss()
             self.criterionL2 = torch.nn.MSELoss()
             # initialize optimizers; schedulers will be automatically created by function <BaseModel.setup>.
             self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))

@@ -6,7 +6,12 @@ from models import create_model
 
 
 class Pix2PixBrainModel(BaseModel):
-    """ This class implements the pix2pix model, for learning a mapping from input images to output images given paired data.
+    """ This class implements the pix2pix_brain model, for learning a mapping from input images to output images given paired data.
+    It provides the option to use a weighted L1 loss to weight the bright tumour pixels more than the rest of the brain.
+    It also allows the option to enable time prediction (TPN), which converts this architecture to the Pix2Pix with Time Labels
+    
+    Example of training a pix2pix_brain model:
+        python train.py --dataroot #DATASET_LOCATION# --name #EXP_NAME# --model pix2pix_brain --direction AtoB --TPN time_prediction_10 --lambda_L2 0.15
 
     The model training requires '--dataset_mode aligned' dataset.
     By default, it uses a '--netG unet256' U-Net generator,
@@ -32,17 +37,17 @@ class Pix2PixBrainModel(BaseModel):
         """
         # changing the default values to match the pix2pix paper (https://phillipi.github.io/pix2pix/)
         parser.set_defaults(norm='batch', netG='unet_256', dataset_mode='aligned')
-        parser.add_argument('--TPN', action='store_true', help='Use the Time Prediction Network (TPN) in the loss')
+        parser.add_argument('--TPN', type=str, default=None, help='Use the Time Prediction Network (TPN), and load specified model')
 
         if is_train:
             parser.set_defaults(pool_size=0, gan_mode='vanilla')
             parser.add_argument('--lambda_L1', type=float, default=100.0, help='weight for L1 loss')
             parser.add_argument('--lambda_L2', type=float, default=0.0, help='weight for tumour tissue over rest of brain. Range [0,1]')
-            parser.add_argument('--gamma', type=float, default=100.0, help='weight for time loss, when TPN is set to True')
+            parser.add_argument('--gamma', type=float, default=1.0, help='weight for time loss, when TPN is set to True')
         return parser
 
     def __init__(self, opt):
-        """Initialize the pix2pix class.
+        """Initialize the pix2pix_brain class.
 
         Parameters:
             opt (Option class)-- stores all the experiment flags; needs to be a subclass of BaseOptions
@@ -58,31 +63,36 @@ class Pix2PixBrainModel(BaseModel):
         else:  # during test time, only load G
             self.model_names = ['G']
 
-        # Set TPN_enabled to the opt.TPN value
-        self.TPN_enabled = self.opt.TPN
+        # Set TPN_enabled to true if opt.TPN is defined
+        if opt.TPN:
+            self.TPN_enabled = True
+        else:
+            self.TPN_enabled = False
+
+        # Conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
+        discr_input_nc = opt.input_nc + opt.output_nc
 
         # If TPN is enabled, switch to the U-Net with TPN architecture
-        discr_input_nc = opt.input_nc + opt.output_nc
-        if self.opt.TPN:
+        if self.TPN_enabled:
             opt.netG = 'unet_256_TPN'
-            discr_input_nc += 1
+            discr_input_nc +=1 # Additional Channel for Time Input
 
         # define networks (both generator and discriminator)
         self.netG = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm,
                                       not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
-        if self.isTrain:  # define a discriminator; conditional GANs need to take both input and output images; Therefore, #channels for D is input_nc + output_nc
+        if self.isTrain:  # define a discriminator; 
             self.netD = networks.define_D(discr_input_nc, opt.ndf, opt.netD,
                                           opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
-            if self.opt.TPN:
+            if self.TPN_enabled:
                 self.loss_names = ['G_GAN', 'G_L1', 'G_TPN', 'D_real', 'D_fake']
 
                 # Store final gamma value and then set it to 0
                 self.final_gamma = deepcopy(opt.gamma)
                 opt.gamma = 0
 
-                # Initiliaze m and c and None
+                # Initiliaze m and c to None
                 self.update_m = None
                 self.update_c = None
 
@@ -90,10 +100,10 @@ class Pix2PixBrainModel(BaseModel):
                 print("\nSetting up TPN\n")
                 opt_TPN = deepcopy(opt) # copy train options and change later
                 opt_TPN.model = 'time_predictor'
-                opt_TPN.name = 'time_prediction_10'
+                opt_TPN.name = opt.TPN
                 opt_TPN.netD = 'time_input'
-                opt_TPN.ndf = 16
-                # hard-code some parameters for test
+                opt_TPN.ndf = 16 # Change depending on the ndf size used with the TPN model specified
+                # hard-code some parameters for TPN test phase
                 opt_TPN.display_id = -1   # no visdom display;
                 opt_TPN.isTrain = False
                 print("Options TPN: {}\n\n".format(opt_TPN))
@@ -130,9 +140,6 @@ class Pix2PixBrainModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         if self.TPN_enabled:
-            # self.img_time_tensor = torch.ones(self.real_A.shape) * self.true_time
-            # img_with_time = torch.cat((self.img_time_tensor.to(self.device), self.real_A), 1) 
-            # self.fake_B = self.netG(img_with_time)
             self.fake_B = self.netG(self.real_A, torch.ones((1,1)) * self.true_time) # Pass the image and time
 
             if self.isTrain:
@@ -152,9 +159,9 @@ class Pix2PixBrainModel(BaseModel):
             fake_AB = torch.cat((self.true_time_layer, self.real_A, self.fake_B), 1)  # we use conditional GANs with TPN; we need to feed both time, input and output to the discriminator
         else:
             fake_AB = torch.cat((self.real_A, self.fake_B), 1)  # we use conditional GANs; we need to feed both input and output to the discriminator
-
         pred_fake = self.netD(fake_AB.detach())
         self.loss_D_fake = self.criterionGAN(pred_fake, False)
+
         # Real
         if self.TPN_enabled:
             real_AB = torch.cat((self.true_time_layer, self.real_A, self.real_B), 1)
@@ -162,6 +169,7 @@ class Pix2PixBrainModel(BaseModel):
             real_AB = torch.cat((self.real_A, self.real_B), 1)
         pred_real = self.netD(real_AB)
         self.loss_D_real = self.criterionGAN(pred_real, True)
+
         # combine loss and calculate gradients
         self.loss_D = (self.loss_D_fake + self.loss_D_real) * 0.5
         self.loss_D.backward()
@@ -178,7 +186,7 @@ class Pix2PixBrainModel(BaseModel):
         
         # Second, G(A) = B
         # Weighted L1 Loss
-        if self.opt.lambda_L2 > 0:
+        if self.opt.lambda_L2 > 0: # If lambda_L2 is not > 0, no need to perform extra computation
             fake_B_tumour = self.fake_B.clone().detach()
             real_B_tumour = self.real_B.clone().detach()
             fake_B_tumour[fake_B_tumour < 0.5] = 0
@@ -186,7 +194,7 @@ class Pix2PixBrainModel(BaseModel):
             self.loss_G_L1 = self.opt.lambda_L1 * (self.criterionL1(self.fake_B, self.real_B) * (1 - self.opt.lambda_L2) + \
                              self.criterionL1(fake_B_tumour, real_B_tumour) * self.opt.lambda_L2)
         else:
-            ### ORIGINAL
+            ### ORIGINAL ###
             self.loss_G_L1 = self.criterionL1(self.fake_B, self.real_B) * self.opt.lambda_L1
 
         # TPN Loss
